@@ -3,8 +3,9 @@ import React from 'react';
 export default function UploadArea({ mode, value, onChange, onSubmit }) {
   return (
     <form onSubmit={e => { e.preventDefault(); onSubmit(); }} className="max-w-xl mx-auto w-full flex flex-col items-center">
-      <div className="w-40 h-40 rounded-full bg-slate-300 border-8 border-slate-400 flex items-center justify-center shadow-inner mb-6">
-        <span className="text-slate-600 font-semibold text-xl">FAKE</span>
+      {/* Logo FAKE */}
+      <div className="w-40 h-40 mb-6 flex items-center justify-center">
+        <img src="/DFTotal-fake.png" alt="Fake icon" className="w-full h-full object-contain drop-shadow" />
       </div>
       {mode === 'url' && (
         <input

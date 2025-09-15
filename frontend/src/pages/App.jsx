@@ -1,15 +1,32 @@
 import React, { useState } from 'react';
 import Navbar from '../components/Navbar';
-import Tabs from '../components/Tabs';
-import UploadArea from '../components/UploadArea';
+// Legacy components Tabs & UploadArea se mantienen por referencia pero no se usan.
+import SmartAnalyzer from '../components/SmartAnalyzer.jsx';
+import MetricsSidebar from '../components/MetricsSidebar.jsx';
+import { useMetrics } from '../utils/useMetricsStore.jsx';
 
 export default function App() {
-  const [mode, setMode] = useState('url');
-  const [value, setValue] = useState('');
+  const [lastType, setLastType] = useState(null);
+  const { addAnalysis } = useMetrics();
 
-  const handleSubmit = () => {
-    // Placeholder: in future call backend for detection
-    alert(`Analizando (${mode}): ${typeof value === 'string' ? value.slice(0, 60) : value?.name}`);
+  const handleSmartSubmit = ({ type, value, fileName, backend }) => {
+    const base = {
+      inputType: type,
+      sourceLabel: type === 'file' ? (fileName || 'Archivo') : (type === 'url' ? value : 'Texto'),
+      preview: type === 'file' ? fileName : value,
+    };
+    if (backend) {
+      // usar score backend (0-1) -> escalar 0-100
+      const created = addAnalysis({
+        ...base,
+        score: Math.round((backend.score ?? 0) * 100),
+      });
+      alert(`(API) ${created.inputType} => ${created.result.toUpperCase()} (${created.score})`);
+    } else {
+      const created = addAnalysis(base);
+      alert(`(LOCAL) ${created.inputType} => ${created.result.toUpperCase()} (${created.score})`);
+    }
+    setLastType(type);
   };
 
   return (
@@ -19,8 +36,15 @@ export default function App() {
         <p className="text-center text-sm md:text-base text-slate-600 max-w-2xl mx-auto mt-4">
           Analice archivos, Textos, y URL sospechosos para detectar Noticias Falsas y otras infracciones y compártalos automáticamente con la comunidad de seguridad.
         </p>
-        <Tabs current={mode} onChange={(m) => { setMode(m); setValue(''); }} />
-        <UploadArea mode={mode} value={value} onChange={setValue} onSubmit={handleSubmit} />
+        <div className="flex flex-col md:flex-row md:items-start gap-10 mt-6">
+          <div className="flex-1 min-w-0 space-y-4">
+            <SmartAnalyzer onSubmit={handleSmartSubmit} />
+            {lastType && (
+              <p className="text-xs text-slate-500">Último tipo detectado: <span className="font-medium">{lastType}</span></p>
+            )}
+          </div>
+          <MetricsSidebar />
+        </div>
       </main>
     </div>
   );

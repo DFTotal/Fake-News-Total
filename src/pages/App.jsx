@@ -3,7 +3,9 @@ import Navbar from '../components/Navbar';
 import Tabs from '../components/Tabs';
 import UploadArea from '../components/UploadArea';
 import AnalysisStats from '../components/AnalysisStats';
+import MetricsSidebar from '../components/MetricsSidebar';
 import ApiTester from '../components/ApiTester';
+import { useMetrics } from '../utils/useMetricsStore.jsx';
 import { 
   analyzeText, 
   analyzeUrl, 
@@ -19,6 +21,7 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [apiStatus, setApiStatus] = useState('checking');
+  const { addAnalysis } = useMetrics();
 
   // Verificar estado de la API al cargar
   useEffect(() => {
@@ -55,6 +58,15 @@ export default function App() {
       }
 
       setResult(response);
+      
+      // Agregar análisis a las métricas
+      addAnalysis({
+        inputType: mode,
+        sourceLabel: mode === 'url' ? value : `Texto (${value.length} chars)`,
+        result: response.prediction === API_CLASSIFICATIONS.FAKE ? 'fake' : 'real',
+        score: (response.confidence || 0) * 100,
+        preview: mode === 'url' ? value : value.substring(0, 100) + (value.length > 100 ? '...' : '')
+      });
     } catch (err) {
       setError(err.message);
       console.error('Error analyzing:', err);
@@ -74,24 +86,29 @@ export default function App() {
           apiStatus === 'offline' ? 'bg-red-100 text-red-800' :
           'bg-yellow-100 text-yellow-800'
         }`}>
-          {apiStatus === 'online' ? '🟢 API conectada y funcionando' :
-           apiStatus === 'offline' ? '🔴 API no disponible - Verifique su conexión' :
-           '🟡 Verificando estado de la API...'}
+          {apiStatus === 'online' ? '🟢 La app está lista' :
+           apiStatus === 'offline' ? '🔴 No está disponible' :
+           '🟡 Espere por favor...'}
         </div>
       </div>
 
       <main className="flex-1 px-6 md:px-16">
-        <p className="text-center text-sm md:text-base text-slate-600 max-w-2xl mx-auto mt-4">
+        <p className="text-center text-sm md:text-base text-slate-600 max-w-4xl mx-auto mt-4">
           Analice archivos, Textos, y URL sospechosos para detectar Noticias Falsas y otras infracciones y compártalos automáticamente con la comunidad de seguridad.
         </p>
-        <Tabs current={mode} onChange={(m) => { setMode(m); setValue(''); setResult(null); setError(null); }} />
-        <UploadArea 
-          mode={mode} 
-          value={value} 
-          onChange={setValue} 
-          onSubmit={handleSubmit}
-          loading={loading}
-        />
+        
+        {/* Layout con sidebar de métricas */}
+        <div className="flex flex-col lg:flex-row gap-8 mt-6">
+          {/* Contenido principal */}
+          <div className="flex-1">
+            <Tabs current={mode} onChange={(m) => { setMode(m); setValue(''); setResult(null); setError(null); }} />
+            <UploadArea 
+              mode={mode} 
+              value={value} 
+              onChange={setValue} 
+              onSubmit={handleSubmit}
+              loading={loading}
+            />
         
         {/* Mostrar resultados */}
         {loading && (
@@ -204,11 +221,16 @@ export default function App() {
           </div>
         )}
 
-        {/* Estadísticas rápidas del análisis */}
-        <AnalysisStats result={result} />
+            {/* Estadísticas rápidas del análisis */}
+            <AnalysisStats result={result} />
 
-        {/* Tester de API (temporal para desarrollo) */}
-        <ApiTester />
+            {/* Tester de API (temporal para desarrollo) */}
+            <ApiTester />
+          </div>
+
+          {/* Sidebar de métricas */}
+          <MetricsSidebar />
+        </div>
       </main>
     </div>
   );

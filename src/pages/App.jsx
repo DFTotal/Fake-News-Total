@@ -3,7 +3,6 @@ import Navbar from '../components/Navbar';
 import UnifiedInput from '../components/UnifiedInput';
 import AnalysisStats from '../components/AnalysisStats';
 import MetricsSidebar from '../components/MetricsSidebar';
-import ApiTester from '../components/ApiTester';
 import { useMetrics } from '../utils/useMetricsStore.jsx';
 import { 
   analyzeText, 
@@ -84,16 +83,27 @@ export default function App() {
     <div className="min-h-screen flex flex-col bg-slate-200 text-slate-800">
       <Navbar />
       
-      {/* Indicador de estado de la API */}
-      <div className="px-6 md:px-16 pt-4">
-        <div className={`max-w-2xl mx-auto p-3 rounded-lg text-sm text-center ${
-          apiStatus === 'online' ? 'bg-green-100 text-green-800' :
-          apiStatus === 'offline' ? 'bg-red-100 text-red-800' :
-          'bg-yellow-100 text-yellow-800'
+      {/* Indicador de estado de la API - Diseño mejorado */}
+      <div className="px-6 md:px-16 pt-6">
+        <div className={`max-w-2xl mx-auto p-4 rounded-2xl text-sm text-center border backdrop-blur-sm transition-all duration-300 ${
+          apiStatus === 'online' 
+            ? 'bg-green-50/80 text-green-700 border-green-200 shadow-green-100/50 shadow-lg' :
+          apiStatus === 'offline' 
+            ? 'bg-red-50/80 text-red-700 border-red-200 shadow-red-100/50 shadow-lg' :
+            'bg-amber-50/80 text-amber-700 border-amber-200 shadow-amber-100/50 shadow-lg'
         }`}>
-          {apiStatus === 'online' ? '🟢 La app está lista' :
-           apiStatus === 'offline' ? '🔴 No está disponible' :
-           '🟡 Espere por favor...'}
+          <div className="flex items-center justify-center space-x-3">
+            <div className={`w-2 h-2 rounded-full ${
+              apiStatus === 'online' ? 'bg-green-500 animate-pulse' :
+              apiStatus === 'offline' ? 'bg-red-500' :
+              'bg-amber-500 animate-bounce'
+            }`}></div>
+            <span className="font-medium">
+              {apiStatus === 'online' ? 'Sistema listo para análisis' :
+               apiStatus === 'offline' ? 'Servicio temporalmente no disponible' :
+               'Conectando con el servicio...'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -125,8 +135,13 @@ export default function App() {
         )}
 
         {result && (
-          <div className="max-w-2xl mx-auto mt-6 p-6 bg-white rounded-lg shadow-lg border">
-            <h3 className="text-xl font-bold mb-6 text-center">📊 Resultados del Análisis</h3>
+          <div className="max-w-2xl mx-auto mt-8 p-8 bg-gradient-to-br from-white to-slate-50/50 rounded-3xl shadow-2xl shadow-slate-300/20 border border-slate-200/50 backdrop-blur-sm">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-slate-100 to-slate-200 rounded-full border border-slate-300/50">
+                <span className="text-2xl">📊</span>
+                <h3 className="text-xl font-bold text-slate-800">Resultados del Análisis</h3>
+              </div>
+            </div>
             
             {/* Clasificación principal */}
             <div className="text-center mb-6">
@@ -224,9 +239,6 @@ export default function App() {
 
             {/* Estadísticas rápidas del análisis */}
             <AnalysisStats result={result} />
-
-            {/* Tester de API (temporal para desarrollo) */}
-            <ApiTester />
           </div>
 
           {/* Sidebar de métricas */}

@@ -95,22 +95,25 @@ export default function UnifiedInput({ onSubmit, loading }) {
   const contentType = selectedFile ? 'file' : isUrl(value.trim()) ? 'url' : 'text';
 
   return (
-    <div className="max-w-2xl mx-auto mt-6">
-      {/* Área principal con el estilo original */}
-      <div className="relative bg-white">
-        {/* Etiqueta "Smart" */}
-        <div className="absolute -top-2 left-4 bg-slate-600 text-white text-xs px-3 py-1 rounded">
-          Smart
+    <div className="max-w-2xl mx-auto mt-8">
+      {/* Área principal con diseño mejorado */}
+      <div className="relative bg-white rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-200/50 overflow-hidden backdrop-blur-sm">
+        {/* Etiqueta "Smart" mejorada */}
+        <div className="absolute -top-3 left-6 bg-gradient-to-r from-slate-600 to-slate-700 text-white text-xs px-4 py-2 rounded-full shadow-lg font-medium">
+          <span className="flex items-center space-x-1">
+            <div className="w-1.5 h-1.5 bg-white/70 rounded-full animate-pulse"></div>
+            <span>Smart</span>
+          </span>
         </div>
         
-        {/* Área de texto/drag & drop */}
+        {/* Área de texto/drag & drop mejorada */}
         <div
-          className={`border-2 border-dashed border-slate-300 rounded p-4 min-h-[160px] transition-all duration-200 ${
+          className={`border-2 border-dashed rounded-2xl m-4 p-6 min-h-[180px] transition-all duration-300 ${
             dragActive 
-              ? 'border-blue-500 bg-blue-50' 
+              ? 'border-blue-400 bg-gradient-to-br from-blue-50 to-blue-100/50 shadow-inner' 
               : selectedFile 
-                ? 'border-green-500 bg-green-50'
-                : 'bg-slate-50'
+                ? 'border-emerald-400 bg-gradient-to-br from-emerald-50 to-emerald-100/50 shadow-inner'
+                : 'border-slate-300 bg-gradient-to-br from-slate-50 to-white hover:border-slate-400'
           }`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
@@ -170,39 +173,65 @@ export default function UnifiedInput({ onSubmit, loading }) {
           )}
         </div>
 
-        {/* Área inferior con botón y mensaje */}
-        <div className="flex items-center justify-between mt-3 text-sm text-gray-500">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-            <span>Escribe o pega texto, URL o selecciona un archivo</span>
+        {/* Área inferior con botón y mensaje mejorada */}
+        <div className="flex items-center justify-between mt-4 px-4 py-3 bg-slate-50/50 rounded-xl border border-slate-200/50">
+          <div className="flex items-center space-x-3">
+            <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+            <span className="text-sm text-slate-600 font-medium">Escribe, pega URL o selecciona archivo</span>
           </div>
           
           <button
             onClick={openFileDialog}
             disabled={loading}
-            className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-2 rounded text-sm transition-colors"
+            className="bg-gradient-to-r from-slate-600 to-slate-700 hover:from-slate-700 hover:to-slate-800 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 shadow-lg shadow-slate-500/20 hover:shadow-xl hover:shadow-slate-500/30 transform hover:scale-105"
           >
-            Seleccionar archivo
+            <span className="flex items-center space-x-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+              </svg>
+              <span>Seleccionar archivo</span>
+            </span>
           </button>
         </div>
 
-        {/* Botón de análisis */}
+        {/* Botón de análisis mejorado */}
         <button
           onClick={handleSubmit}
           disabled={!hasContent || loading}
-          className={`w-full mt-4 py-3 rounded font-semibold text-white transition-all duration-200 ${
+          className={`w-full mt-6 py-4 rounded-2xl font-bold text-white transition-all duration-300 transform ${
             !hasContent || loading
-              ? 'bg-gray-400 cursor-not-allowed'
-              : 'bg-slate-600 hover:bg-slate-700'
+              ? 'bg-gradient-to-r from-gray-300 to-gray-400 cursor-not-allowed scale-95'
+              : 'bg-gradient-to-r from-slate-600 via-slate-700 to-slate-800 hover:from-slate-700 hover:via-slate-800 hover:to-slate-900 shadow-xl shadow-slate-500/30 hover:shadow-2xl hover:shadow-slate-600/40 hover:scale-105 active:scale-95'
           }`}
         >
-          {loading ? 'Analizando...' : 'Analizar'}
+          {loading ? (
+            <span className="flex items-center justify-center space-x-3">
+              <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Analizando contenido...</span>
+            </span>
+          ) : (
+            <span className="flex items-center justify-center space-x-2">
+              <span>🔍</span>
+              <span>Analizar Contenido</span>
+            </span>
+          )}
         </button>
 
-        {/* Mensaje informativo */}
-        <p className="text-center text-xs text-gray-500 mt-4">
-          No incluyas datos personales. La detección decide automáticamente el tipo (URL, Texto o Archivo) según el contenido que proporciones.
-        </p>
+        {/* Mensaje informativo mejorado */}
+        <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200/50">
+          <p className="text-center text-xs text-blue-700/80 leading-relaxed">
+            <span className="inline-flex items-center space-x-1">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+              </svg>
+              <span className="font-medium">Privacidad:</span>
+            </span>
+            {' '}No incluyas información personal. El sistema detecta automáticamente el tipo de contenido.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -5,7 +5,16 @@ export default function MetricsSidebar() {
   const { stats, analyses } = useMetrics();
   const recent = analyses.slice(0,5);
   return (
-    <aside className="w-full md:w-80 xl:w-96 flex-shrink-0 space-y-6" aria-label="Resumen de métricas">
+    <aside className="w-full md:w-80 xl:w-96 flex-shrink-0 space-y-8" aria-label="Resumen de métricas">
+      {/* Header del sidebar */}
+      <div className="bg-gradient-to-br from-slate-800 via-slate-900 to-slate-800 rounded-3xl p-6 text-white shadow-2xl shadow-slate-900/20">
+        <div className="flex items-center space-x-3 mb-2">
+          <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+          <h3 className="text-lg font-bold">Panel de Control</h3>
+        </div>
+        <p className="text-slate-300 text-sm">Estadísticas en tiempo real</p>
+      </div>
+      
       <KPICards stats={stats} />
       <RecentList recent={recent} />
     </aside>
@@ -51,20 +60,22 @@ function KPICards({ stats }) {
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-3">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 gap-4">
         {cards.map(c => (
-          <div key={c.id} className="relative group rounded-xl p-3 bg-gradient-to-br text-white shadow-sm overflow-hidden from-slate-700/90 to-slate-800/90 ring-1 ring-white/5">
-            <div className={`absolute inset-0 opacity-70 mix-blend-overlay bg-gradient-to-br ${c.accent}`}/>
-            <div className="relative flex items-start justify-between">
+          <div key={c.id} className="relative group rounded-2xl p-5 bg-white shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-200/50 overflow-hidden transform hover:scale-105">
+            <div className={`absolute inset-0 opacity-10 bg-gradient-to-br ${c.accent}`}/>
+            <div className="relative flex items-center justify-between">
               <div className="flex flex-col">
-                <span className="text-[10px] tracking-wider uppercase text-white/70 font-medium">{c.label}</span>
-                <span className="mt-1 text-2xl font-semibold tabular-nums drop-shadow-sm">{c.value}</span>
+                <span className="text-xs tracking-wider uppercase text-slate-500 font-bold mb-2">{c.label}</span>
+                <span className="text-4xl font-black text-slate-800 tabular-nums">{c.value}</span>
+                <div className={`w-16 h-1.5 rounded-full mt-3 bg-gradient-to-r ${c.accent}`}></div>
               </div>
-              <div className="p-2 rounded-lg bg-white/10 backdrop-blur-sm shadow-inner">
+              <div className={`p-4 rounded-2xl bg-gradient-to-br ${c.accent} shadow-lg transform rotate-3 hover:rotate-6 transition-transform duration-300`}>
                 {c.icon}
               </div>
             </div>
+            <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br opacity-5 rounded-full blur-2xl from-slate-400 to-slate-600"></div>
           </div>
         ))}
       </div>

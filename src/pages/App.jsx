@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
-import Tabs from '../components/Tabs';
-import UploadArea from '../components/UploadArea';
+import UnifiedInput from '../components/UnifiedInput';
 import AnalysisStats from '../components/AnalysisStats';
 import MetricsSidebar from '../components/MetricsSidebar';
 import ApiTester from '../components/ApiTester';
@@ -9,14 +8,13 @@ import { useMetrics } from '../utils/useMetricsStore.jsx';
 import { 
   analyzeText, 
   analyzeUrl, 
+  analyzeFile,
   getApiHealth, 
   getConfidenceLevel,
   API_CLASSIFICATIONS 
 } from '../utils/api';
 
 export default function App() {
-  const [mode, setMode] = useState('url');
-  const [value, setValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -38,8 +36,8 @@ export default function App() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!value) return;
+  const handleSubmit = async (content, type) => {
+    if (!content) return;
     
     setLoading(true);
     setError(null);
@@ -47,25 +45,32 @@ export default function App() {
 
     try {
       let response;
+      let sourceLabel;
+      let preview;
       
-      if (mode === 'url') {
-        response = await analyzeUrl(value);
-      } else if (mode === 'text') {
-        response = await analyzeText(value);
-      } else if (mode === 'file') {
-        // Por ahora mostrar que archivo no está soportado
-        throw new Error('El análisis de archivos aún no está implementado');
+      if (type === 'url') {
+        response = await analyzeUrl(content);
+        sourceLabel = content;
+        preview = content;
+      } else if (type === 'text') {
+        response = await analyzeText(content);
+        sourceLabel = `Texto (${content.length} chars)`;
+        preview = content.substring(0, 100) + (content.length > 100 ? '...' : '');
+      } else if (type === 'file') {
+        response = await analyzeFile(content);
+        sourceLabel = `Archivo: ${content.name}`;
+        preview = `${content.name} (${(content.size / 1024).toFixed(1)} KB)`;
       }
 
       setResult(response);
       
       // Agregar análisis a las métricas
       addAnalysis({
-        inputType: mode,
-        sourceLabel: mode === 'url' ? value : `Texto (${value.length} chars)`,
+        inputType: type,
+        sourceLabel,
         result: response.prediction === API_CLASSIFICATIONS.FAKE ? 'fake' : 'real',
         score: (response.confidence || 0) * 100,
-        preview: mode === 'url' ? value : value.substring(0, 100) + (value.length > 100 ? '...' : '')
+        preview
       });
     } catch (err) {
       setError(err.message);
@@ -101,11 +106,7 @@ export default function App() {
         <div className="flex flex-col lg:flex-row gap-8 mt-6">
           {/* Contenido principal */}
           <div className="flex-1">
-            <Tabs current={mode} onChange={(m) => { setMode(m); setValue(''); setResult(null); setError(null); }} />
-            <UploadArea 
-              mode={mode} 
-              value={value} 
-              onChange={setValue} 
+            <UnifiedInput 
               onSubmit={handleSubmit}
               loading={loading}
             />

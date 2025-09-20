@@ -193,6 +193,94 @@ export async function getApiMetrics() {
 }
 
 /**
+ * Analiza el contenido de un archivo para detectar noticias falsas
+ * @param {File} file - Archivo a analizar
+ * @param {Object} options - Opciones adicionales de análisis
+ * @returns {Promise<Object>} Resultado del análisis con score de confianza y clasificación
+ */
+export async function analyzeFile(file, options = {}) {
+  if (!file) {
+    throw new Error('No se proporcionó ningún archivo');
+  }
+
+  // Validar tamaño del archivo (máximo 5MB)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    throw new Error('El archivo es demasiado grande (máximo 5MB)');
+  }
+
+  try {
+    // Leer el contenido del archivo
+    const text = await readFileContent(file);
+    
+    if (!text || text.trim().length === 0) {
+      throw new Error('El archivo no contiene texto legible');
+    }
+
+    // Usar la función analyzeText con el contenido extraído
+    const result = await analyzeText(text, options);
+    
+    return {
+      ...result,
+      source_file: file.name,
+      file_size: file.size,
+      file_type: file.type,
+      extracted_text_length: text.length
+    };
+  } catch (error) {
+    console.error('Error analizando archivo:', error);
+    throw new Error(`Error en análisis de archivo: ${error.message}`);
+  }
+}
+
+/**
+ * Función auxiliar para leer el contenido de un archivo
+ * @param {File} file - Archivo a leer
+ * @returns {Promise<string>} Contenido del archivo como texto
+ */
+async function readFileContent(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
+        let text = e.target.result;
+        
+        // Si es un archivo de texto plano, usar directamente
+        if (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+          resolve(text);
+          return;
+        }
+        
+        // Para otros tipos, intentar extraer texto
+        // Nota: Para PDFs complejos se necesitaría una librería como pdf.js
+        if (file.type === 'application/pdf') {
+          // Por ahora, mostrar mensaje informativo para PDFs
+          throw new Error('Los archivos PDF requieren procesamiento adicional. Use texto plano por ahora.');
+        }
+        
+        // Para HTML, extraer texto básico
+        if (file.type === 'text/html' || file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(text, 'text/html');
+          text = doc.body?.textContent || doc.textContent || text;
+        }
+        
+        resolve(text);
+      } catch (error) {
+        reject(new Error(`No se pudo leer el archivo: ${error.message}`));
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('Error al leer el archivo'));
+    };
+    
+    reader.readAsText(file);
+  });
+}
+
+/**
  * Función de utilidad para probar la conectividad completa de la API
  * @returns {Promise<Object>} Resultado completo de las pruebas
  */

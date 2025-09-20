@@ -19,30 +19,29 @@ const defaultRequestConfig = {
  * @param {Response} response - Objeto Response de fetch
  * @returns {Promise<Object>} - Datos parseados o error
  */
+function formatUnknown(value) {
+  if (value == null) return '';
+  if (typeof value === 'string') return value;
+  if (value instanceof Error) return value.message;
+  try { return JSON.stringify(value); } catch { return String(value); }
+}
+
 async function handleResponse(response) {
   const contentType = response.headers.get('content-type');
-  
   if (!response.ok) {
-    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-    
-    // Intentar obtener más detalles del error si hay un cuerpo de respuesta
+    let errorMessage = `HTTP ${response.status}`;
     if (contentType && contentType.includes('application/json')) {
       try {
         const errorData = await response.json();
-        errorMessage = errorData.detail || errorData.message || errorMessage;
-      } catch (e) {
-        // Si no se puede parsear el JSON, usar el mensaje por defecto
-      }
+        const primary = errorData.detail || errorData.message || errorData.error || errorData.errors;
+        errorMessage = formatUnknown(primary) || errorMessage;
+      } catch {}
+    } else {
+      try { errorMessage = await response.text(); } catch {}
     }
-    
     throw new Error(errorMessage);
   }
-  
-  // Parsear respuesta JSON
-  if (contentType && contentType.includes('application/json')) {
-    return await response.json();
-  }
-  
+  if (contentType && contentType.includes('application/json')) return await response.json();
   return await response.text();
 }
 

@@ -80,171 +80,34 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-200 text-slate-800">
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      
-      {/* Indicador de estado de la API - Diseño mejorado */}
-      <div className="px-6 md:px-16 pt-6">
-        <div className={`max-w-2xl mx-auto p-4 rounded-2xl text-sm text-center border backdrop-blur-sm transition-all duration-300 ${
-          apiStatus === 'online' 
-            ? 'bg-green-50/80 text-green-700 border-green-200 shadow-green-100/50 shadow-lg' :
-          apiStatus === 'offline' 
-            ? 'bg-red-50/80 text-red-700 border-red-200 shadow-red-100/50 shadow-lg' :
-            'bg-amber-50/80 text-amber-700 border-amber-200 shadow-amber-100/50 shadow-lg'
-        }`}>
-          <div className="flex items-center justify-center space-x-3">
-            <div className={`w-2 h-2 rounded-full ${
-              apiStatus === 'online' ? 'bg-green-500 animate-pulse' :
-              apiStatus === 'offline' ? 'bg-red-500' :
-              'bg-amber-500 animate-bounce'
-            }`}></div>
-            <span className="font-medium">
-              {apiStatus === 'online' ? 'Sistema listo para análisis' :
-               apiStatus === 'offline' ? 'Servicio temporalmente no disponible' :
-               'Conectando con el servicio...'}
-            </span>
+      <div className="w-full">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="pt-6">
+            <div className={`p-3 rounded-md text-xs md:text-sm text-center surface-card border ${apiStatus==='online'? 'border-green-200 bg-green-50' : apiStatus==='offline' ? 'border-rose-200 bg-rose-50' : 'border-amber-200 bg-amber-50'}`}> 
+              <div className="flex items-center justify-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${apiStatus==='online'?'bg-green-500':'apiStatus'==='offline'?'bg-rose-500':'bg-amber-500'}`}></span>
+                <span className="font-medium text-slate-700">
+                  {apiStatus === 'online' ? 'Sistema listo para análisis' : apiStatus === 'offline' ? 'Servicio temporalmente no disponible' : 'Conectando con el servicio...'}
+                </span>
+              </div>
+            </div>
+            <p className="text-center text-[13px] md:text-sm text-soft max-w-3xl mx-auto mt-5 leading-relaxed">
+              Analiza URLs, texto o archivos para clasificar contenido potencialmente falso. Compartimos señales agregadas para fortalecer la comunidad.
+            </p>
+            <div className="flex flex-col lg:flex-row gap-10 mt-10">
+              <div className="flex-1 min-w-0">
+                <UnifiedInput onSubmit={handleSubmit} loading={loading} />
+                {loading && <div className="mt-6 text-center text-xs text-soft">Procesando…</div>}
+                {error && <div className="mt-4 text-xs text-rose-600 bg-rose-50 border border-rose-200 px-3 py-2 rounded">{error}</div>}
+                <AnalysisStats result={result} />
+              </div>
+              <MetricsSidebar />
+            </div>
           </div>
         </div>
       </div>
-
-      <main className="flex-1 px-6 md:px-16">
-        <p className="text-center text-sm md:text-base text-slate-600 max-w-4xl mx-auto mt-4">
-          Analice archivos, Textos, y URL sospechosos para detectar Noticias Falsas y otras infracciones y compártalos automáticamente con la comunidad de seguridad.
-        </p>
-        
-        {/* Layout con sidebar de métricas */}
-        <div className="flex flex-col lg:flex-row gap-8 mt-6">
-          {/* Contenido principal */}
-          <div className="flex-1">
-            <UnifiedInput 
-              onSubmit={handleSubmit}
-              loading={loading}
-            />
-        
-        {/* Mostrar resultados */}
-        {loading && (
-          <div className="max-w-xl mx-auto mt-6 p-4 bg-blue-100 rounded-lg">
-            <p className="text-center text-blue-800">🔍 Analizando contenido...</p>
-          </div>
-        )}
-
-        {error && (
-          <div className="max-w-xl mx-auto mt-6 p-4 bg-red-100 rounded-lg">
-            <p className="text-center text-red-800">❌ Error: {error}</p>
-          </div>
-        )}
-
-        {result && (
-          <div className="max-w-2xl mx-auto mt-8 p-8 bg-gradient-to-br from-white to-slate-50/50 rounded-3xl shadow-2xl shadow-slate-300/20 border border-slate-200/50 backdrop-blur-sm">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-slate-100 to-slate-200 rounded-full border border-slate-300/50">
-                <span className="text-2xl">📊</span>
-                <h3 className="text-xl font-bold text-slate-800">Resultados del Análisis</h3>
-              </div>
-            </div>
-            
-            {/* Clasificación principal */}
-            <div className="text-center mb-6">
-              <div className={`inline-flex items-center px-6 py-3 rounded-full text-lg font-semibold ${
-                result.prediction === API_CLASSIFICATIONS.FAKE ? 'bg-red-100 text-red-800' :
-                result.prediction === API_CLASSIFICATIONS.REAL ? 'bg-green-100 text-green-800' :
-                'bg-yellow-100 text-yellow-800'
-              }`}>
-                {result.prediction === API_CLASSIFICATIONS.FAKE ? '🚨 Fake News Detectada' :
-                 result.prediction === API_CLASSIFICATIONS.REAL ? '✅ Noticia Legítima' :
-                 '⚠️ Resultado Incierto'}
-              </div>
-            </div>
-
-            {/* Medidor de confianza mejorado */}
-            {result.confidence !== undefined && (
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="font-medium">Nivel de Confianza:</span>
-                  <span className={`font-bold`} style={{ 
-                    color: getConfidenceLevel(result.confidence).color 
-                  }}>
-                    {getConfidenceLevel(result.confidence).label} ({(result.confidence * 100).toFixed(1)}%)
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-4 mb-2">
-                  <div 
-                    className="h-4 rounded-full transition-all duration-500 ease-out"
-                    style={{ 
-                      width: `${result.confidence * 100}%`,
-                      backgroundColor: getConfidenceLevel(result.confidence).color
-                    }}
-                  ></div>
-                </div>
-                <p className="text-sm text-gray-600">
-                  {result.confidence >= 0.8 ? 'Resultado muy confiable' :
-                   result.confidence >= 0.6 ? 'Resultado confiable' :
-                   result.confidence >= 0.4 ? 'Resultado moderadamente confiable' :
-                   'Resultado poco confiable - Se recomienda verificación manual'}
-                </p>
-              </div>
-            )}
-
-            {/* Información adicional */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-4 border-t">
-              {result.text_length && (
-                <div className="text-sm">
-                  <span className="font-medium text-gray-700">Texto analizado:</span>
-                  <span className="ml-2">{result.text_length} caracteres</span>
-                </div>
-              )}
-              
-              {result.analysis_time && (
-                <div className="text-sm">
-                  <span className="font-medium text-gray-700">Tiempo de análisis:</span>
-                  <span className="ml-2">{result.analysis_time.toFixed(2)}s</span>
-                </div>
-              )}
-
-              {result.source_url && (
-                <div className="text-sm md:col-span-2">
-                  <span className="font-medium text-gray-700">URL analizada:</span>
-                  <a 
-                    href={result.source_url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="ml-2 text-blue-600 hover:text-blue-800 break-all"
-                  >
-                    {result.source_url}
-                  </a>
-                </div>
-              )}
-
-              {result.extracted_text_length && (
-                <div className="text-sm">
-                  <span className="font-medium text-gray-700">Texto extraído:</span>
-                  <span className="ml-2">{result.extracted_text_length} caracteres</span>
-                </div>
-              )}
-            </div>
-
-            {/* Mostrar datos técnicos en un acordeón */}
-            <details className="mt-4 pt-4 border-t">
-              <summary className="cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
-                Ver datos técnicos del análisis
-              </summary>
-              <div className="mt-3 p-3 bg-gray-50 rounded text-xs">
-                <pre className="whitespace-pre-wrap overflow-x-auto">
-                  {JSON.stringify(result, null, 2)}
-                </pre>
-              </div>
-            </details>
-          </div>
-        )}
-
-            {/* Estadísticas rápidas del análisis */}
-            <AnalysisStats result={result} />
-          </div>
-
-          {/* Sidebar de métricas */}
-          <MetricsSidebar />
-        </div>
-      </main>
     </div>
   );
 }

@@ -135,18 +135,14 @@ export async function analyzeUrl(url, options = {}) {
   if (!url || url.trim().length === 0) {
     throw new Error('La URL no puede estar vacía');
   }
-  
-  // Validación básica de URL
-  try {
-    new URL(url);
-  } catch (e) {
-    throw new Error('La URL proporcionada no es válida');
-  }
+  try { new URL(url); } catch { throw new Error('La URL proporcionada no es válida'); }
 
   try {
     const requestBody = {
-      url: url.trim(),
-      ...options // Opciones como extract_method, timeout, etc.
+      text: url.trim(), // backend ahora exige 'text'
+      url: url.trim(),  // conservamos referencia
+      source_type: 'url',
+      ...options
     };
 
     const response = await fetch(`${API_BASE_URL}/analyze`, {
@@ -154,10 +150,8 @@ export async function analyzeUrl(url, options = {}) {
       ...defaultRequestConfig,
       body: JSON.stringify(requestBody)
     });
-    
+
     const result = await handleResponse(response);
-    
-    // Normalizar respuesta
     return {
       ...result,
       confidence: result.confidence || result.score || 0,
@@ -168,7 +162,6 @@ export async function analyzeUrl(url, options = {}) {
       timestamp: new Date().toISOString()
     };
   } catch (error) {
-    console.error('Error analizando URL:', error);
     throw new Error(`Error en análisis de URL: ${error.message}`);
   }
 }

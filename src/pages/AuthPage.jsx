@@ -29,14 +29,16 @@ const AuthPage = () => {
 
   const THROTTLE_MS = 2000; // 2s entre envíos
   const REGISTER_COOLDOWN_MS = 60000; // 60s por email
+  const LOGIN_FAIL_COOLDOWN_MS = 15000; // 15s por email tras fallo de login
   const [cooldownSecs, setCooldownSecs] = useState(0);
 
-  // Actualizar UI del cooldown en registro
+  // Actualizar UI del cooldown según modo (registro/login)
   useEffect(() => {
-    if (isLogin) { setCooldownSecs(0); return; }
     let timer;
     const tick = () => {
-      const leftMs = getCooldownLeftMs('reg', email, REGISTER_COOLDOWN_MS);
+      const leftMs = isLogin
+        ? getCooldownLeftMs('login', email, LOGIN_FAIL_COOLDOWN_MS)
+        : getCooldownLeftMs('reg', email, REGISTER_COOLDOWN_MS);
       setCooldownSecs(Math.ceil(leftMs/1000));
     };
     tick();
@@ -93,6 +95,10 @@ const AuthPage = () => {
           // Cambiar automáticamente a la vista de login para evitar reintentos innecesarios
           setIsLogin(true);
           return;
+        }
+        // Tras fallo de login, activar cooldown corto por email
+        if (isLogin) {
+          setCooldownTs('login', email);
         }
         if (!isLogin && isSevereError(err)) {
           setError('No se pudo registrar. Inténtalo más tarde.');

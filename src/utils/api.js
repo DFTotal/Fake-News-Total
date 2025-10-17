@@ -8,11 +8,22 @@ const API_BASE_URL = 'https://fakenewsignacio.vercel.app'; /* Cambiar por la api
 // Configuración por defecto para las peticiones
 const defaultRequestConfig = {
   headers: {
-    'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  timeout: 30000, // 30 segundos de timeout
+  timeout: 30000, // 30 segundos de timeout (informativo)
 };
+
+function getAuthToken() {
+  try {
+    return localStorage.getItem('access_token') || null;
+  } catch { return null; }
+}
+
+function withAuthHeaders(additional = {}) {
+  const token = getAuthToken();
+  if (token) return { ...additional, Authorization: `Bearer ${token}` };
+  return additional;
+}
 
 /**
  * Función auxiliar para manejar respuestas HTTP
@@ -51,7 +62,7 @@ async function handleResponse(response) {
  */
 export async function getApiHealth() {
   try {
-    const response = await fetch(`${API_BASE_URL}/health`, {
+    const response = await fetch(`${API_BASE_URL}/health/`, {
       method: 'GET',
       ...defaultRequestConfig,
     });
@@ -97,30 +108,28 @@ export async function analyzeText(text, options = {}) {
   }
 
   try {
-    // Usar FormData en vez de JSON
+    // Usar FormData (según OpenAPI: multipart/form-data acepta text/url/file)
     const formData = new FormData();
     formData.append('text', text.trim());
-    // Si necesitas enviar más campos desde options, puedes agregarlos aquí:
-    for (const [key, value] of Object.entries(options)) {
-      formData.append(key, value);
-    }
+    for (const [key, value] of Object.entries(options)) formData.append(key, value);
 
-    const response = await fetch(`${API_BASE_URL}/analyze`, {
+    const response = await fetch(`${API_BASE_URL}/analyze/`, {
       method: 'POST',
-      // No se especifica 'Content-Type' para FormData
-      body: formData
+      headers: withAuthHeaders(), // no Content-Type para FormData
+      body: formData,
     });
 
     const result = await handleResponse(response);
 
+    const analysisTimeSec = typeof result.analysis_time_ms === 'number' ? (result.analysis_time_ms / 1000) : (result.analysis_time || result.processing_time || 0);
     // Normalizar respuesta para consistencia
     return {
       ...result,
-      confidence: result.confidence || result.score || 0,
-      prediction: result.prediction || result.classification || 'unknown',
-      analysis_time: result.analysis_time || result.processing_time || 0,
-      text_length: text.length,
-      timestamp: new Date().toISOString()
+      confidence: result.confidence ?? result.score ?? 0,
+      prediction: (result.prediction || result.classification || result.label || 'unknown').toString().toLowerCase(),
+      analysis_time: analysisTimeSec,
+      text_length: result.content_length || text.length,
+      timestamp: new Date().toISOString(),
     };
   } catch (error) {
     console.error('Error analizando texto:', error);
@@ -141,28 +150,27 @@ export async function analyzeUrl(url, options = {}) {
   try { new URL(url); } catch { throw new Error('La URL proporcionada no es válida'); }
 
   try {
-    const requestBody = {
-      text: url.trim(), // backend ahora exige 'text'
-      url: url.trim(),  // conservamos referencia
-      source_type: 'url',
-      ...options
-    };
+    // Enviar como FormData con campo 'url'
+    const formData = new FormData();
+    formData.append('url', url.trim());
+    for (const [key, value] of Object.entries(options)) formData.append(key, value);
 
-    const response = await fetch(`${API_BASE_URL}/analyze`, {
+    const response = await fetch(`${API_BASE_URL}/analyze/`, {
       method: 'POST',
-      ...defaultRequestConfig,
-      body: JSON.stringify(requestBody)
+      headers: withAuthHeaders(),
+      body: formData,
     });
 
     const result = await handleResponse(response);
+    const analysisTimeSec = typeof result.analysis_time_ms === 'number' ? (result.analysis_time_ms / 1000) : (result.analysis_time || result.processing_time || 0);
     return {
       ...result,
-      confidence: result.confidence || result.score || 0,
-      prediction: result.prediction || result.classification || 'unknown',
+      confidence: result.confidence ?? result.score ?? 0,
+      prediction: (result.prediction || result.classification || result.label || 'unknown').toString().toLowerCase(),
       source_url: url,
-      extracted_text_length: result.extracted_text?.length || 0,
-      analysis_time: result.analysis_time || result.processing_time || 0,
-      timestamp: new Date().toISOString()
+      extracted_text_length: result.content_length || 0,
+      analysis_time: analysisTimeSec,
+      timestamp: new Date().toISOString(),
     };
   } catch (error) {
     throw new Error(`Error en análisis de URL: ${error.message}`);
@@ -178,6 +186,7 @@ export async function getApiMetrics() {
     const response = await fetch(`${API_BASE_URL}/metrics/summary`, {
       method: 'GET',
       ...defaultRequestConfig,
+      headers: withAuthHeaders(defaultRequestConfig.headers),
     });
     
     return await handleResponse(response);
@@ -205,22 +214,29 @@ export async function analyzeFile(file, options = {}) {
   }
 
   try {
-    // Leer el contenido del archivo
-    const text = await readFileContent(file);
-    
-    if (!text || text.trim().length === 0) {
-      throw new Error('El archivo no contiene texto legible');
-    }
+    // Enviar como archivo binario usando FormData directamente a /analyze/
+    const formData = new FormData();
+    formData.append('file', file);
+    for (const [key, value] of Object.entries(options)) formData.append(key, value);
 
-    // Usar la función analyzeText con el contenido extraído
-    const result = await analyzeText(text, options);
-    
+    const response = await fetch(`${API_BASE_URL}/analyze/`, {
+      method: 'POST',
+      headers: withAuthHeaders(),
+      body: formData,
+    });
+
+    const result = await handleResponse(response);
+    const analysisTimeSec = typeof result.analysis_time_ms === 'number' ? (result.analysis_time_ms / 1000) : (result.analysis_time || result.processing_time || 0);
     return {
       ...result,
+      confidence: result.confidence ?? result.score ?? 0,
+      prediction: (result.prediction || result.classification || result.label || 'unknown').toString().toLowerCase(),
       source_file: file.name,
       file_size: file.size,
       file_type: file.type,
-      extracted_text_length: text.length
+      extracted_text_length: result.content_length || 0,
+      analysis_time: analysisTimeSec,
+      timestamp: new Date().toISOString(),
     };
   } catch (error) {
     console.error('Error analizando archivo:', error);
@@ -337,10 +353,7 @@ export async function registerUser(email, password) {
   try {
     const response = await fetch(`${API_BASE_URL}/auth/register`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers: withAuthHeaders({ 'Content-Type': 'application/json', 'Accept': 'application/json' }),
       body: JSON.stringify({ email, password })
     });
     return await handleResponse(response);
@@ -362,9 +375,7 @@ export async function loginUser(email, password) {
     params.append('password', password);
     const response = await fetch(`${API_BASE_URL}/auth/login`, {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-      },
+      headers: { 'Accept': 'application/json' },
       body: params
     });
     return await handleResponse(response);

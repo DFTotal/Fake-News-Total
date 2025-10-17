@@ -10,7 +10,9 @@ import {
   analyzeFile,
   getApiHealth, 
   getConfidenceLevel,
-  API_CLASSIFICATIONS 
+  API_CLASSIFICATIONS,
+  registerUser,
+  loginUser,
 } from '../utils/api';
 
 export default function App() {
@@ -18,6 +20,8 @@ export default function App() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [apiStatus, setApiStatus] = useState('checking');
+  const [authOpen, setAuthOpen] = useState(false);
+  const [authMode, setAuthMode] = useState('signup'); // 'signup' | 'login'
   const { addAnalysis } = useMetrics();
 
   // Verificar estado de la API al cargar
@@ -81,7 +85,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      <Navbar onOpenAuth={(mode = 'signup') => { setAuthMode(mode); setAuthOpen(true); }} />
       <div className="w-full">
         <div className="max-w-6xl mx-auto px-6">
           <div className="pt-6">
@@ -106,6 +110,118 @@ export default function App() {
               <MetricsSidebar />
             </div>
           </div>
+        </div>
+      </div>
+      {authOpen && (
+        <AuthModal
+          mode={authMode}
+          onClose={() => setAuthOpen(false)}
+          onToggleMode={() => setAuthMode(m => (m === 'signup' ? 'login' : 'signup'))}
+        />)
+      }
+    </div>
+  );
+}
+
+function AuthModal({ mode, onClose, onToggleMode }){
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const lastSubmitAtRef = React.useRef(0);
+  const THROTTLE_MS = 2000; // 2s entre envíos
+  const REGISTER_COOLDOWN_MS = 60000; // 60s por email
+  const [cooldownSecs, setCooldownSecs] = useState(0);
+  const now = () => Date.now();
+  const key = (t,e) => `${t}Cooldown:${(e||'').trim().toLowerCase()}`;
+  const left = (t,e,w) => {
+    try { const ts = parseInt(localStorage.getItem(key(t,e))||'0',10)||0; const d = now()-ts; return d<w? (w-d):0; } catch { return 0; }
+  };
+  const mark = (t,e) => { try { localStorage.setItem(key(t,e), String(now())); } catch {} };
+  const severe = (err) => {
+    const m = (err?.message || '').toLowerCase();
+    return m.includes('failed to fetch') || m.startsWith('http 5') || m.includes('internal server error') || m.includes('network');
+  };
+
+  useEffect(() => {
+    if (mode === 'login') { setCooldownSecs(0); return; }
+    const tick = () => setCooldownSecs(Math.ceil(left('reg', email, REGISTER_COOLDOWN_MS)/1000));
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [mode, email]);
+
+  async function handleSubmit(e){
+    e.preventDefault();
+    setError('');
+    // throttle global
+    const since = now() - lastSubmitAtRef.current;
+    if (since < THROTTLE_MS) {
+      setError('Por favor espera un momento antes de intentar nuevamente.');
+      return;
+    }
+    // cooldown por email para registro
+    if (mode !== 'login') {
+      const remain = left('reg', email, REGISTER_COOLDOWN_MS);
+      if (remain > 0) {
+        const secs = Math.ceil(remain/1000);
+        setError(`Demasiados intentos con este correo. Intenta nuevamente en ${secs}s.`);
+        return;
+      }
+    }
+    setLoading(true);
+    try {
+      if (mode === 'login') {
+        const result = await loginUser(email, password);
+        localStorage.setItem('access_token', result.access_token);
+        onClose();
+      } else {
+        await registerUser(email, password);
+        mark('reg', email);
+        onToggleMode();
+      }
+    } catch (err) {
+      if (mode !== 'login' && severe(err)) setError('No se pudo registrar. Inténtalo más tarde.');
+      else setError(err.message || 'Error de autenticación');
+    } finally { setLoading(false); }
+    lastSubmitAtRef.current = now();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white shadow-xl rounded-xl p-6 w-full max-w-md mx-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-slate-800">{mode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}</h2>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-700" aria-label="Cerrar">✕</button>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="auth-email" className="block text-sm font-medium text-gray-700">Email</label>
+            <input id="auth-email" type="email" value={email} onChange={e=>setEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+          </div>
+          <div>
+            <label htmlFor="auth-password" className="block text-sm font-medium text-gray-700">Contraseña</label>
+            <input id="auth-password" type="password" value={password} onChange={e=>setPassword(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" />
+          </div>
+          {error && <div className="text-red-600 text-sm text-center">{error}</div>}
+          <button type="submit" disabled={loading || (mode !== 'login' && cooldownSecs>0)} className={`w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition ${(loading || (mode !== 'login' && cooldownSecs>0)) ? 'opacity-50 cursor-not-allowed' : ''}`}>
+            {(() => {
+              if (loading) return 'Procesando...';
+              if (mode === 'login') return 'Entrar';
+              return cooldownSecs>0 ? `Espera ${cooldownSecs}s` : 'Registrarse';
+            })()}
+          </button>
+          {mode !== 'login' && cooldownSecs>0 && (
+            <div className="mt-2 text-center text-xs text-slate-600">Cooldown activo para este correo. Intenta nuevamente en {cooldownSecs}s.</div>
+          )}
+        </form>
+        <div className="mt-4 text-center text-sm">
+          {mode === 'login' ? (
+            <button onClick={onToggleMode} className="text-blue-600 hover:underline" disabled={loading}>¿No tienes cuenta? Regístrate</button>
+          ) : (
+            <button onClick={onToggleMode} className="text-blue-600 hover:underline" disabled={loading}>¿Ya tienes cuenta? Inicia sesión</button>
+          )}
         </div>
       </div>
     </div>

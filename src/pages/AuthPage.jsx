@@ -1,4 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+// Helpers de cooldown/rate a nivel de módulo
+const nowTs = () => Date.now();
+const getCooldownKey = (type, email) => `${type}Cooldown:${(email || '').trim().toLowerCase()}`;
+const getCooldownLeftMs = (type, email, windowMs) => {
+  try {
+    const ts = Number.parseInt(localStorage.getItem(getCooldownKey(type, email)) || '0', 10) || 0;
+    return Math.max(0, windowMs - (nowTs() - ts));
+  } catch { return 0; }
+};
+const setCooldownTs = (type, email) => {
+  try { localStorage.setItem(getCooldownKey(type, email), String(nowTs())); } catch {}
+};
+const isSevereError = (err) => {
+  const m = (err?.message || '').toLowerCase();
+  return m.includes('failed to fetch') || m.startsWith('http 5') || m.includes('internal server error') || m.includes('network');
+};
 import { useNavigate } from 'react-router-dom';
 import { registerUser, loginUser } from '../utils/api';
 
@@ -8,11 +24,46 @@ const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const lastSubmitAtRef = useRef(0);
   const navigate = useNavigate();
+
+  const THROTTLE_MS = 2000; // 2s entre envíos
+  const REGISTER_COOLDOWN_MS = 60000; // 60s por email
+  const [cooldownSecs, setCooldownSecs] = useState(0);
+
+  // Actualizar UI del cooldown en registro
+  useEffect(() => {
+    if (isLogin) { setCooldownSecs(0); return; }
+    let timer;
+    const tick = () => {
+      const leftMs = getCooldownLeftMs('reg', email, REGISTER_COOLDOWN_MS);
+      setCooldownSecs(Math.ceil(leftMs/1000));
+    };
+    tick();
+    timer = setInterval(tick, 1000);
+    return () => { clearInterval(timer); };
+  }, [isLogin, email]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    // Throttle global ligero
+    const since = nowTs() - lastSubmitAtRef.current;
+    if (since < THROTTLE_MS) {
+      setError('Por favor espera un momento antes de intentar nuevamente.');
+      return;
+    }
+
+    // Cooldown por email para registro
+    if (!isLogin) {
+      const leftMs = getCooldownLeftMs('reg', email, REGISTER_COOLDOWN_MS);
+      if (leftMs > 0) {
+        const secs = Math.ceil(leftMs/1000);
+        setError(`Demasiados intentos con este correo. Intenta nuevamente en ${secs}s.`);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       if (isLogin) {
@@ -22,13 +73,22 @@ const AuthPage = () => {
         navigate('/');
       } else {
         await registerUser(email, password);
+        // establecer cooldown solo tras registro exitoso
+        setCooldownTs('reg', email);
         setLoading(false);
         alert('Registro exitoso. Ahora puedes iniciar sesión.');
         setIsLogin(true);
       }
     } catch (err) {
       setLoading(false);
-      setError(err.message || 'Error de autenticación');
+      if (!isLogin && isSevereError(err)) {
+        setError('No se pudo registrar. Inténtalo más tarde.');
+      } else {
+        setError(err.message || 'Error de autenticación');
+      }
+    }
+    finally {
+      lastSubmitAtRef.current = nowTs();
     }
   };
 
@@ -64,11 +124,18 @@ const AuthPage = () => {
           {error && <div className="text-red-600 text-sm text-center">{error}</div>}
           <button
             type="submit"
-            className={`w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            disabled={loading}
+            className={`w-full py-2 px-4 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition ${(loading || (!isLogin && cooldownSecs>0)) ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={loading || (!isLogin && cooldownSecs>0)}
           >
-            {loading ? 'Procesando...' : isLogin ? 'Entrar' : 'Registrarse'}
+            {(() => {
+              if (loading) return 'Procesando...';
+              if (isLogin) return 'Entrar';
+              return cooldownSecs>0 ? `Espera ${cooldownSecs}s` : 'Registrarse';
+            })()}
           </button>
+          {!isLogin && cooldownSecs>0 && (
+            <p className="mt-2 text-center text-xs text-slate-600">Cooldown activo para este correo. Intenta nuevamente en {cooldownSecs}s.</p>
+          )}
         </form>
         <div className="mt-6 text-center">
           {isLogin ? (

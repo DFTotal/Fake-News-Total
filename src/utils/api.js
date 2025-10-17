@@ -3,7 +3,7 @@
  * Basado en la API de detección de noticias falsas https://fakenewsignacio.vercel.app
  */
 
-const API_BASE_URL = 'https://fakenewsignacio.vercel.app';
+const API_BASE_URL = 'https://fakenewsignacio.vercel.app'; /* Cambiar por la api subida a vercel*/
 
 // Configuración por defecto para las peticiones
 const defaultRequestConfig = {
@@ -91,25 +91,28 @@ export async function analyzeText(text, options = {}) {
   if (!text || text.trim().length === 0) {
     throw new Error('El texto a analizar no puede estar vacío');
   }
-  
+
   if (text.length > 10000) {
     throw new Error('El texto es demasiado largo (máximo 10,000 caracteres)');
   }
 
   try {
-    const requestBody = {
-      text: text.trim(),
-      ...options // Permite pasar opciones adicionales como language, model, etc.
-    };
+    // Usar FormData en vez de JSON
+    const formData = new FormData();
+    formData.append('text', text.trim());
+    // Si necesitas enviar más campos desde options, puedes agregarlos aquí:
+    for (const [key, value] of Object.entries(options)) {
+      formData.append(key, value);
+    }
 
     const response = await fetch(`${API_BASE_URL}/analyze`, {
       method: 'POST',
-      ...defaultRequestConfig,
-      body: JSON.stringify(requestBody)
+      // No se especifica 'Content-Type' para FormData
+      body: formData
     });
-    
+
     const result = await handleResponse(response);
-    
+
     // Normalizar respuesta para consistencia
     return {
       ...result,
@@ -322,6 +325,52 @@ export async function testApiConnectivity() {
   }
 
   return results;
+}
+
+/**
+ * Registra un nuevo usuario
+ * @param {string} email - Email del usuario
+ * @param {string} password - Contraseña del usuario
+ * @returns {Promise<Object>} Usuario público registrado
+ */
+export async function registerUser(email, password) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ email, password })
+    });
+    return await handleResponse(response);
+  } catch (error) {
+    throw new Error(`Error al registrar usuario: ${error.message}`);
+  }
+}
+
+/**
+ * Inicia sesión de usuario
+ * @param {string} email - Email del usuario
+ * @param {string} password - Contraseña del usuario
+ * @returns {Promise<Object>} Token de acceso
+ */
+export async function loginUser(email, password) {
+  try {
+    const params = new URLSearchParams();
+    params.append('username', email);
+    params.append('password', password);
+    const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+      },
+      body: params
+    });
+    return await handleResponse(response);
+  } catch (error) {
+    throw new Error(`Error al iniciar sesión: ${error.message}`);
+  }
 }
 
 /**

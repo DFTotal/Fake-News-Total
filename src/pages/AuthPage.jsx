@@ -47,12 +47,17 @@ const AuthPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    // Evitar doble/triple submit si ya hay una petición en curso
+    if (loading) return;
     // Throttle global ligero
-    const since = nowTs() - lastSubmitAtRef.current;
+    const now = nowTs();
+    const since = now - lastSubmitAtRef.current;
     if (since < THROTTLE_MS) {
       setError('Por favor espera un momento antes de intentar nuevamente.');
       return;
     }
+    // Bloquear inmediatamente nuevos envíos dentro de la ventana de throttle
+    lastSubmitAtRef.current = now;
 
     // Cooldown por email para registro
     if (!isLogin) {
@@ -80,14 +85,23 @@ const AuthPage = () => {
         setIsLogin(true);
       }
     } catch (err) {
-      setLoading(false);
-      if (!isLogin && isSevereError(err)) {
-        setError('No se pudo registrar. Inténtalo más tarde.');
-      } else {
-        setError(err.message || 'Error de autenticación');
-      }
+        setLoading(false);
+        const msg = (err?.message || '').toLowerCase();
+        // Caso específico: correo ya registrado
+        if (!isLogin && msg.includes('email already registered')) {
+          setError('El correo ya está registrado. Inicia sesión o usa otro correo.');
+          // Cambiar automáticamente a la vista de login para evitar reintentos innecesarios
+          setIsLogin(true);
+          return;
+        }
+        if (!isLogin && isSevereError(err)) {
+          setError('No se pudo registrar. Inténtalo más tarde.');
+        } else {
+          setError(err.message || 'Error de autenticación');
+        }
     }
     finally {
+      // Mantener actualizado el timestamp del último submit (opcional)
       lastSubmitAtRef.current = nowTs();
     }
   };

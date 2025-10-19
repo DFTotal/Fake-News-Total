@@ -3,7 +3,10 @@
  * Basado en la API de detección de noticias falsas https://fakenewsignacio.vercel.app
  */
 
-const API_BASE_URL = 'https://fakenewsignacio.vercel.app'; /* Cambiar por la api subida a vercel*/
+// En producción (Vercel), usar proxy /api para evitar CORS mediante rewrites; en dev usar URL directa
+const API_BASE_URL = (typeof globalThis !== 'undefined' && globalThis.location && String(globalThis.location.hostname || '').endsWith('vercel.app'))
+  ? '/api'
+  : 'https://fakenewsignacio.vercel.app';
 
 // Configuración por defecto para las peticiones
 const defaultRequestConfig = {
@@ -41,18 +44,19 @@ async function handleResponse(response) {
   const contentType = response.headers.get('content-type');
   if (!response.ok) {
     let errorMessage = `HTTP ${response.status}`;
-    if (contentType && contentType.includes('application/json')) {
+    if (contentType?.includes('application/json')) {
       try {
         const errorData = await response.json();
         const primary = errorData.detail || errorData.message || errorData.error || errorData.errors;
-        errorMessage = formatUnknown(primary) || errorMessage;
+  const formatted = String(formatUnknown(primary) || '');
+  errorMessage = formatted || errorMessage;
       } catch {}
     } else {
       try { errorMessage = await response.text(); } catch {}
     }
     throw new Error(errorMessage);
   }
-  if (contentType && contentType.includes('application/json')) return await response.json();
+  if (contentType?.includes('application/json')) return await response.json();
   return await response.text();
 }
 
@@ -250,45 +254,24 @@ export async function analyzeFile(file, options = {}) {
  * @returns {Promise<string>} Contenido del archivo como texto
  */
 async function readFileContent(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    
-    reader.onload = (e) => {
-      try {
-        let text = e.target.result;
-        
-        // Si es un archivo de texto plano, usar directamente
-        if (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
-          resolve(text);
-          return;
-        }
-        
-        // Para otros tipos, intentar extraer texto
-        // Nota: Para PDFs complejos se necesitaría una librería como pdf.js
-        if (file.type === 'application/pdf') {
-          // Por ahora, mostrar mensaje informativo para PDFs
-          throw new Error('Los archivos PDF requieren procesamiento adicional. Use texto plano por ahora.');
-        }
-        
-        // Para HTML, extraer texto básico
-        if (file.type === 'text/html' || file.name.endsWith('.html') || file.name.endsWith('.htm')) {
-          const parser = new DOMParser();
-          const doc = parser.parseFromString(text, 'text/html');
-          text = doc.body?.textContent || doc.textContent || text;
-        }
-        
-        resolve(text);
-      } catch (error) {
-        reject(new Error(`No se pudo leer el archivo: ${error.message}`));
-      }
-    };
-    
-    reader.onerror = () => {
-      reject(new Error('Error al leer el archivo'));
-    };
-    
-    reader.readAsText(file);
-  });
+  const blobText = await file.text();
+  try {
+    let text = blobText;
+    if (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
+      return text;
+    }
+    if (file.type === 'application/pdf') {
+      throw new Error('Los archivos PDF requieren procesamiento adicional. Use texto plano por ahora.');
+    }
+    if (file.type === 'text/html' || file.name.endsWith('.html') || file.name.endsWith('.htm')) {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'text/html');
+      text = doc.body?.textContent || doc.textContent || text;
+    }
+    return text;
+  } catch (error) {
+    throw new Error(`No se pudo leer el archivo: ${error.message}`);
+  }
 }
 
 /**

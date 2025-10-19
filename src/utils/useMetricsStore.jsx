@@ -1,5 +1,9 @@
 import React, { createContext, useContext, useMemo, useRef, useState } from 'react';
 
+function generateScore() {
+  return Math.round(Math.pow(Math.random(), 0.8) * 100);
+}
+
 // Estructura de un análisis registrado
 // {
 //   id: string,
@@ -13,14 +17,24 @@ import React, { createContext, useContext, useMemo, useRef, useState } from 'rea
 
 const MetricsContext = createContext(null);
 
-export function MetricsProvider({ children }) {
+/**
+ * @param {{children: import('react').ReactNode}} props
+ */
+export function MetricsProvider(props) {
   const idCounter = useRef(0);
   const [analyses, setAnalyses] = useState(() => []);
 
   function addAnalysis(partial) {
     idCounter.current += 1;
     const score = typeof partial.score === 'number' ? partial.score : generateScore();
-    const result = score > 55 ? 'fake' : 'real';
+    // Usar la clasificación del backend si está disponible; fallback basado en score (0% ~ fake, 100% ~ real)
+    const normalizedResult = typeof partial.result === 'string' ? partial.result.toLowerCase() : null;
+    let result;
+    if (normalizedResult === 'fake' || normalizedResult === 'real') {
+      result = normalizedResult;
+    } else {
+      result = score < 50 ? 'fake' : 'real';
+    }
     const entry = {
       id: String(idCounter.current),
       createdAt: new Date(),
@@ -34,9 +48,6 @@ export function MetricsProvider({ children }) {
     return entry;
   }
 
-  function generateScore() {
-    return Math.round(Math.pow(Math.random(), 0.8) * 100);
-  }
 
   const stats = useMemo(() => {
     const total = analyses.length;
@@ -69,7 +80,7 @@ export function MetricsProvider({ children }) {
   }, [analyses]);
 
   const value = useMemo(() => ({ analyses, addAnalysis, stats }), [analyses, stats]);
-  return <MetricsContext.Provider value={value}>{children}</MetricsContext.Provider>;
+  return <MetricsContext.Provider value={value}>{props.children}</MetricsContext.Provider>;
 }
 
 export function useMetrics() {

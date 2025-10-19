@@ -1,13 +1,13 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-export default function Navbar() {
+export default function Navbar({ onOpenAuth }) {
   const authToken = localStorage.getItem('access_token');
   const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem('access_token');
-    navigate('/auth');
+    navigate('/');
   };
 
   return (
@@ -24,7 +24,12 @@ export default function Navbar() {
         <a href="#" className="text-xs text-soft hover:text-slate-700 transition">Docs</a>
         <a href="#" className="text-xs text-soft hover:text-slate-700 transition">API</a>
         {!authToken ? (
-          <Link to="/auth" className="button-accent">Sign Up</Link>
+          (() => {
+            if (onOpenAuth) {
+              return <button type="button" className="button-accent" onClick={() => onOpenAuth('signup')}>Sign Up</button>;
+            }
+            return <Link to="/auth" className="button-accent">Sign Up</Link>;
+          })()
         ) : (
           <button
             className="button-accent bg-red-600 hover:bg-red-700 text-white"

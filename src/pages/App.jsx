@@ -5,21 +5,24 @@ import AnalysisStats from '../components/AnalysisStats';
 import MetricsSidebar from '../components/MetricsSidebar';
 import { useMetrics } from '../utils/useMetricsStore.jsx';
 import { 
-  analyzeText, 
-  analyzeUrl, 
-  analyzeFile,
-  getApiHealth, 
-  getConfidenceLevel,
+  getApiHealth,
+  getDatabaseHealth,
+  getAIModelHealth,
+  getWebExtractorHealth,
   API_CLASSIFICATIONS,
   registerUser,
   loginUser,
+  checkFactsMulti,
+  analyzeWithAllModels,
 } from '../utils/api';
+
 
 export default function App() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [apiStatus, setApiStatus] = useState('checking');
+  const [systemHealth, setSystemHealth] = useState(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState('signup'); // 'signup' | 'login'
   const { addAnalysis } = useMetrics();
@@ -27,12 +30,34 @@ export default function App() {
   // Verificar estado de la API al cargar
   useEffect(() => {
     checkApiStatus();
+    const interval = setInterval(checkApiStatus, 60000); // Check every minute
+    return () => clearInterval(interval);
   }, []);
 
   const checkApiStatus = async () => {
     try {
-      await getApiHealth();
-      setApiStatus('online');
+      const [health, dbHealth, aiHealth, webHealth] = await Promise.allSettled([
+        getApiHealth(),
+        getDatabaseHealth(),
+        getAIModelHealth(),
+        getWebExtractorHealth(),
+      ]);
+      
+      const healthData = {
+        api: health.status === 'fulfilled',
+        database: dbHealth.status === 'fulfilled' && dbHealth.value?.status === 'healthy',
+        ai_model: aiHealth.status === 'fulfilled' && aiHealth.value?.status === 'healthy',
+        web_extractor: webHealth.status === 'fulfilled' && webHealth.value?.status === 'healthy',
+      };
+      
+      setSystemHealth(healthData);
+      
+      // Si al menos la API principal está online, marcar como online
+      if (healthData.api) {
+        setApiStatus('online');
+      } else {
+        setApiStatus('offline');
+      }
     } catch (err) {
       setApiStatus('offline');
       console.error('API no disponible:', err);
@@ -47,32 +72,121 @@ export default function App() {
     setResult(null);
 
     try {
-      let response;
       let sourceLabel;
       let preview;
+      let textContent = '';
+      let urlContent = null;
       
+      // Preparar labels y contenido según el tipo
       if (type === 'url') {
-        response = await analyzeUrl(content);
         sourceLabel = content;
         preview = content;
+        urlContent = content;
+        textContent = content; // Se extraerá en el análisis
       } else if (type === 'text') {
-        response = await analyzeText(content);
         sourceLabel = `Texto (${content.length} chars)`;
         preview = content.substring(0, 100) + (content.length > 100 ? '...' : '');
+        textContent = content;
       } else if (type === 'file') {
-        response = await analyzeFile(content);
         sourceLabel = `Archivo: ${content.name}`;
         preview = `${content.name} (${(content.size / 1024).toFixed(1)} KB)`;
       }
 
-      setResult(response);
+      console.log('🚀 Iniciando análisis con TODOS los modelos de IA...');
+
+      // 1. ANALIZAR CON TODOS LOS MODELOS
+      const multiModelResponse = await analyzeWithAllModels(content, type, type === 'file' ? content : null);
+      
+      // Extraer texto para fact-checking si vino del análisis
+      if (multiModelResponse.extracted_text) {
+        textContent = multiModelResponse.extracted_text;
+      }
+
+      console.log(`✅ Consenso de ${multiModelResponse.multi_model_analysis.total_models} modelos:`, 
+                  `${multiModelResponse.prediction} (${Math.round(multiModelResponse.confidence * 100)}%)`);
+
+      // 2. EJECUTAR FACT-CHECKING
+      let factCheckResults = null;
+      try {
+        console.log('🔍 Consultando fact-checkers...');
+        factCheckResults = await checkFactsMulti(textContent, urlContent);
+        console.log('✅ Fact-checking completado');
+      } catch (factError) {
+        console.warn('⚠ Fact-checking no disponible:', factError);
+      }
+
+      // 3. COMBINAR: Consenso de IA + Fact-checking
+      const aiPrediction = (multiModelResponse?.prediction || '').toLowerCase();
+      const aiConfidence = multiModelResponse?.confidence || 0;
+      const multiModelVotes = multiModelResponse.multi_model_analysis;
+      
+      let finalPrediction = aiPrediction;
+      let finalConfidence = aiConfidence;
+      let verificationSource = `Consenso de ${multiModelVotes.total_models} modelos de IA`;
+
+      // PRIORIDAD 1: Si Google Fact Check tiene verificación
+      if (factCheckResults?.results?.google?.success && factCheckResults.results.google.total_results > 0) {
+        const googleClaims = factCheckResults.results.google.claims || [];
+        
+        if (googleClaims.length > 0) {
+          const firstClaim = googleClaims[0];
+          const rating = (firstClaim.textualRating || '').toLowerCase();
+          
+          // Interpretar rating de Google
+          if (rating.includes('false') || rating.includes('falso') || rating.includes('incorrect')) {
+            finalPrediction = 'fake';
+            finalConfidence = 0.95; // Muy alta confianza con Google + IA
+            verificationSource = 'Google Fact Check + IA';
+          } else if (rating.includes('true') || rating.includes('correct') || rating.includes('verdadero')) {
+            finalPrediction = 'real';
+            finalConfidence = 0.95;
+            verificationSource = 'Google Fact Check + IA';
+          }
+        }
+      }
+      
+      // PRIORIDAD 2: Consenso de modelos muy fuerte (todos de acuerdo)
+      else if (multiModelVotes.consensus_strength >= 0.8) {
+        // 80% o más de los modelos están de acuerdo
+        finalConfidence = Math.min(0.9, aiConfidence * 1.1); // Aumentar confianza ligeramente
+        verificationSource = `Consenso fuerte: ${multiModelVotes.real_votes + multiModelVotes.fake_votes} de ${multiModelVotes.total_models} modelos`;
+      }
+      
+      // PRIORIDAD 3: Consenso débil o dividido
+      else if (multiModelVotes.consensus_strength < 0.6) {
+        // Modelos muy divididos: reducir confianza
+        finalConfidence = Math.max(0.3, aiConfidence * 0.8);
+        verificationSource = `Opiniones divididas: ${multiModelVotes.real_votes} real vs ${multiModelVotes.fake_votes} fake`;
+      }
+
+      // PRECAUCIÓN: Si mayoría dice "uncertain", tratar como fake
+      if (multiModelVotes.uncertain_votes > multiModelVotes.real_votes && 
+          multiModelVotes.uncertain_votes > multiModelVotes.fake_votes) {
+        finalPrediction = 'fake';
+        finalConfidence = 0.4; // Baja confianza
+        verificationSource = 'Modelos inciertos - Principio de precaución';
+      }
+
+      // 4. RESULTADO FINAL ENRIQUECIDO
+      const enrichedResponse = {
+        ...multiModelResponse,
+        prediction: finalPrediction,
+        confidence: finalConfidence,
+        verification_source: verificationSource,
+        fact_check_results: factCheckResults,
+      };
+
+      console.log('🎯 VEREDICTO FINAL:', finalPrediction.toUpperCase(), 
+                  `(${Math.round(finalConfidence * 100)}% confianza)`);
+
+      setResult(enrichedResponse);
       
       // Agregar análisis a las métricas
       addAnalysis({
         inputType: type,
         sourceLabel,
-        result: response.prediction === API_CLASSIFICATIONS.FAKE ? 'fake' : 'real',
-        score: (response.confidence || 0) * 100,
+        result: finalPrediction === API_CLASSIFICATIONS.FAKE || finalPrediction === 'fake' ? 'fake' : 'real',
+        score: (finalConfidence || 0) * 100,
         preview
       });
     } catch (err) {
@@ -90,20 +204,33 @@ export default function App() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="pt-6">
             <div className={`p-3 rounded-md text-xs md:text-sm text-center surface-card border ${apiStatus==='online'? 'border-green-200 bg-green-50' : apiStatus==='offline' ? 'border-rose-200 bg-rose-50' : 'border-amber-200 bg-amber-50'}`}> 
-              <div className="flex items-center justify-center gap-2">
-                <span className={`w-2 h-2 rounded-full ${apiStatus==='online'?'bg-green-500':'apiStatus'==='offline'?'bg-rose-500':'bg-amber-500'}`}></span>
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <span className={`w-2 h-2 rounded-full ${apiStatus==='online'?'bg-green-500':apiStatus==='offline'?'bg-rose-500':'bg-amber-500'}`}></span>
                 <span className="font-medium text-slate-700">
                   {apiStatus === 'online' ? 'Sistema listo para análisis' : apiStatus === 'offline' ? 'Servicio temporalmente no disponible' : 'Conectando con el servicio...'}
                 </span>
+                {systemHealth && apiStatus === 'online' && (
+                  <div className="flex items-center gap-2 ml-2 text-[10px]">
+                    <span className={`px-2 py-0.5 rounded ${systemHealth.database ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      DB
+                    </span>
+                    <span className={`px-2 py-0.5 rounded ${systemHealth.ai_model ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      IA
+                    </span>
+                    <span className={`px-2 py-0.5 rounded ${systemHealth.web_extractor ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      Web
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
             <p className="text-center text-[13px] md:text-sm text-soft max-w-3xl mx-auto mt-5 leading-relaxed">
-              Analiza URLs, texto o archivos para clasificar contenido potencialmente falso. Compartimos señales agregadas para fortalecer la comunidad.
+              Analiza URLs, texto o archivos con 6 modelos de IA simultáneamente para obtener un veredicto más preciso. Compartimos señales agregadas para fortalecer la comunidad.
             </p>
             <div className="flex flex-col lg:flex-row gap-10 mt-10">
               <div className="flex-1 min-w-0">
                 <UnifiedInput onSubmit={handleSubmit} loading={loading} />
-                {loading && <div className="mt-6 text-center text-xs text-soft">Procesando…</div>}
+                {loading && <div className="mt-6 text-center text-xs text-soft">Analizando con 6 modelos de IA y verificadores de hechos...</div>}
                 {error && <div className="mt-4 text-xs text-rose-600 bg-rose-50 border border-rose-200 px-3 py-2 rounded">{error}</div>}
                 <AnalysisStats result={result} />
               </div>

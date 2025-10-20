@@ -48,8 +48,13 @@ async function handleResponse(response) {
       try {
         const errorData = await response.json();
         const primary = errorData.detail || errorData.message || errorData.error || errorData.errors;
-  const formatted = String(formatUnknown(primary) || '');
-  errorMessage = formatted || errorMessage;
+        const formatted = String(formatUnknown(primary) || '');
+        errorMessage = formatted || errorMessage;
+        
+        // Si es error 500, dar mensaje más amigable
+        if (response.status >= 500) {
+          errorMessage = `Error del servidor: ${errorMessage}. Intenta de nuevo o usa otro tipo de análisis.`;
+        }
       } catch {}
     } else {
       try { errorMessage = await response.text(); } catch {}
@@ -75,6 +80,60 @@ export async function getApiHealth() {
   } catch (error) {
     console.error('Error verificando estado de la API:', error);
     throw new Error(`No se pudo verificar el estado de la API: ${error.message}`);
+  }
+}
+
+/**
+ * Verifica el estado de la base de datos
+ * @returns {Promise<Object>} Estado de la conexión a la base de datos
+ */
+export async function getDatabaseHealth() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/health/database`, {
+      method: 'GET',
+      ...defaultRequestConfig,
+    });
+    
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Error verificando estado de la base de datos:', error);
+    throw new Error(`No se pudo verificar el estado de la base de datos: ${error.message}`);
+  }
+}
+
+/**
+ * Verifica el estado del modelo de IA
+ * @returns {Promise<Object>} Estado del modelo de análisis
+ */
+export async function getAIModelHealth() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/health/ai-model`, {
+      method: 'GET',
+      ...defaultRequestConfig,
+    });
+    
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Error verificando estado del modelo de IA:', error);
+    throw new Error(`No se pudo verificar el estado del modelo de IA: ${error.message}`);
+  }
+}
+
+/**
+ * Verifica el estado del extractor web
+ * @returns {Promise<Object>} Estado del servicio de extracción web
+ */
+export async function getWebExtractorHealth() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/health/web-extractor`, {
+      method: 'GET',
+      ...defaultRequestConfig,
+    });
+    
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Error verificando estado del extractor web:', error);
+    throw new Error(`No se pudo verificar el estado del extractor web: ${error.message}`);
   }
 }
 
@@ -197,6 +256,196 @@ export async function getApiMetrics() {
   } catch (error) {
     console.error('Error obteniendo métricas de la API:', error);
     throw new Error(`No se pudieron obtener las métricas: ${error.message}`);
+  }
+}
+
+/**
+ * Obtiene métricas en serie temporal (últimos 7 días)
+ * @returns {Promise<Object>} Datos de análisis por día
+ */
+export async function getMetricsTimeseries() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/metrics/timeseries`, {
+      method: 'GET',
+      ...defaultRequestConfig,
+      headers: withAuthHeaders(defaultRequestConfig.headers),
+    });
+    
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Error obteniendo serie temporal de métricas:', error);
+    throw new Error(`No se pudo obtener la serie temporal: ${error.message}`);
+  }
+}
+
+/**
+ * Obtiene la lista de modelos de IA disponibles
+ * @returns {Promise<Object>} Lista de modelos con información detallada
+ */
+export async function getAvailableModels() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/models/`, {
+      method: 'GET',
+      ...defaultRequestConfig,
+    });
+    
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Error obteniendo modelos disponibles:', error);
+    throw new Error(`No se pudieron obtener los modelos: ${error.message}`);
+  }
+}
+
+/**
+ * Obtiene el modelo de IA actualmente en uso
+ * @returns {Promise<Object>} Información del modelo actual
+ */
+export async function getCurrentModel() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/models/current`, {
+      method: 'GET',
+      ...defaultRequestConfig,
+    });
+    
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Error obteniendo modelo actual:', error);
+    throw new Error(`No se pudo obtener el modelo actual: ${error.message}`);
+  }
+}
+
+/**
+ * Cambia el modelo de IA para análisis
+ * @param {string} modelName - Nombre del modelo a usar (ej: "GonzaloA/fake-news-detection-spanish")
+ * @returns {Promise<Object>} Confirmación del cambio
+ */
+export async function changeModel(modelName) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/models/change`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...withAuthHeaders(),
+      },
+      body: JSON.stringify({ model_name: modelName }),
+    });
+    
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Error cambiando modelo:', error);
+    throw new Error(`No se pudo cambiar el modelo: ${error.message}`);
+  }
+}
+
+/**
+ * Analiza contenido con TODOS los modelos de IA disponibles y retorna consenso
+ * @param {string} content - Texto a analizar
+ * @param {string} type - Tipo de contenido: 'text', 'url', o 'file'
+ * @param {File} file - Archivo (solo si type='file')
+ * @returns {Promise<Object>} Resultado con consenso de todos los modelos
+ */
+export async function analyzeWithAllModels(content, type = 'text', file = null) {
+  try {
+    // 1. Obtener lista de todos los modelos disponibles
+    const modelsData = await getAvailableModels();
+    const models = modelsData.available_models || [];
+    
+    if (models.length === 0) {
+      throw new Error('No hay modelos disponibles');
+    }
+
+    console.log(`🔍 Analizando con ${models.length} modelos de IA...`);
+    
+    // 2. Analizar con cada modelo
+    const results = [];
+    for (const model of models) {
+      try {
+        // Cambiar al modelo actual
+        await changeModel(model.model_id);
+        
+        // Realizar análisis según el tipo
+        let result;
+        if (type === 'url') {
+          result = await analyzeUrl(content);
+        } else if (type === 'file' && file) {
+          result = await analyzeFile(file);
+        } else {
+          result = await analyzeText(content);
+        }
+        
+        results.push({
+          model_id: model.model_id,
+          model_name: model.name || model.model_id,
+          language: model.language,
+          accuracy: model.accuracy,
+          prediction: (result.prediction || result.label || '').toLowerCase(),
+          confidence: result.confidence || 0,
+          score: result.score || 0,
+          full_result: result,
+        });
+        
+        console.log(`✓ ${model.model_id}: ${result.prediction} (${Math.round((result.confidence || 0) * 100)}%)`);
+      } catch (modelError) {
+        console.warn(`⚠ Error con modelo ${model.model_id}:`, modelError.message);
+        // Continuar con el siguiente modelo
+      }
+    }
+
+    if (results.length === 0) {
+      throw new Error('Ningún modelo pudo analizar el contenido');
+    }
+
+    // 3. Calcular consenso
+    const fakeCount = results.filter(r => r.prediction === 'fake' || r.prediction === 'false').length;
+    const realCount = results.filter(r => r.prediction === 'real' || r.prediction === 'true').length;
+    const uncertainCount = results.filter(r => r.prediction === 'uncertain').length;
+
+    // Promedio de confianza
+    const avgConfidence = results.reduce((sum, r) => sum + r.confidence, 0) / results.length;
+    
+    // Promedio de score
+    const avgScore = results.reduce((sum, r) => sum + r.score, 0) / results.length;
+
+    // Determinar veredicto por mayoría
+    let consensusPrediction;
+    if (fakeCount > realCount) {
+      consensusPrediction = 'fake';
+    } else if (realCount > fakeCount) {
+      consensusPrediction = 'real';
+    } else {
+      // Empate: usar promedio de scores
+      consensusPrediction = avgScore > 0.5 ? 'real' : 'fake';
+    }
+
+    // Calcular confianza del consenso (más modelos de acuerdo = más confianza)
+    const maxCount = Math.max(fakeCount, realCount);
+    const consensusStrength = maxCount / results.length; // 0-1
+    const consensusConfidence = avgConfidence * consensusStrength;
+
+    return {
+      // Resultado del consenso
+      prediction: consensusPrediction,
+      confidence: consensusConfidence,
+      score: avgScore,
+      
+      // Detalles del análisis multi-modelo
+      multi_model_analysis: {
+        total_models: results.length,
+        fake_votes: fakeCount,
+        real_votes: realCount,
+        uncertain_votes: uncertainCount,
+        average_confidence: avgConfidence,
+        average_score: avgScore,
+        consensus_strength: consensusStrength,
+        individual_results: results,
+      },
+      
+      // Copiar datos adicionales del primer resultado exitoso
+      ...(results[0]?.full_result || {}),
+    };
+  } catch (error) {
+    console.error('Error en análisis multi-modelo:', error);
+    throw error;
   }
 }
 
@@ -424,3 +673,56 @@ export function getConfidenceLevel(confidence) {
     score: confidence
   };
 }
+
+/**
+ * Verifica un texto o URL contra múltiples fact-checkers (Google, RapidAPI, etc.)
+ * @param {string} text - Texto a verificar
+ * @param {string|null} url - URL a verificar (opcional)
+ * @returns {Promise<Object>} Resultados de fact-checking
+ */
+export async function checkFactsMulti(text, url = null) {
+  try {
+    const payload = { text };
+    if (url) {
+      payload.url = url;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/fact-check/multi-check`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...withAuthHeaders(),
+      },
+      body: JSON.stringify(payload),
+    });
+    
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Error verificando con fact-checkers:', error);
+    throw new Error(`No se pudo verificar con fact-checkers: ${error.message}`);
+  }
+}
+
+/**
+ * Verifica un texto contra Google Fact Check
+ * @param {string} text - Texto a verificar
+ * @returns {Promise<Object>} Resultados de Google Fact Check
+ */
+export async function checkFactsGoogle(text) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/fact-check/google`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...withAuthHeaders(),
+      },
+      body: JSON.stringify({ text }),
+    });
+    
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Error verificando con Google:', error);
+    throw new Error(`No se pudo verificar con Google: ${error.message}`);
+  }
+}
+

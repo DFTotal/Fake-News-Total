@@ -70,6 +70,9 @@ export default function App() {
     setLoading(true);
     setError(null);
     setResult(null);
+    
+    // ⏱️ INICIAR CONTADOR DE TIEMPO REAL
+    const startTime = performance.now();
 
     try {
       let sourceLabel;
@@ -167,17 +170,22 @@ export default function App() {
         verificationSource = 'Modelos inciertos - Principio de precaución';
       }
 
-      // 4. RESULTADO FINAL ENRIQUECIDO
+      console.log('🎯 VEREDICTO FINAL:', finalPrediction.toUpperCase(), 
+                  `(${Math.round(finalConfidence * 100)}% confianza)`);
+
+      // ⏱️ CALCULAR TIEMPO REAL DE ANÁLISIS
+      const endTime = performance.now();
+      const realAnalysisTime = (endTime - startTime) / 1000; // Convertir a segundos
+
+      // 4. RESULTADO FINAL ENRIQUECIDO (con tiempo real)
       const enrichedResponse = {
         ...multiModelResponse,
         prediction: finalPrediction,
         confidence: finalConfidence,
         verification_source: verificationSource,
         fact_check_results: factCheckResults,
+        analysis_time: realAnalysisTime, // ✅ TIEMPO REAL
       };
-
-      console.log('🎯 VEREDICTO FINAL:', finalPrediction.toUpperCase(), 
-                  `(${Math.round(finalConfidence * 100)}% confianza)`);
 
       setResult(enrichedResponse);
       
@@ -209,19 +217,6 @@ export default function App() {
                 <span className="font-medium text-slate-700">
                   {apiStatus === 'online' ? 'Sistema listo para análisis' : apiStatus === 'offline' ? 'Servicio temporalmente no disponible' : 'Conectando con el servicio...'}
                 </span>
-                {systemHealth && apiStatus === 'online' && (
-                  <div className="flex items-center gap-2 ml-2 text-[10px]">
-                    <span className={`px-2 py-0.5 rounded ${systemHealth.database ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                      DB
-                    </span>
-                    <span className={`px-2 py-0.5 rounded ${systemHealth.ai_model ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                      IA
-                    </span>
-                    <span className={`px-2 py-0.5 rounded ${systemHealth.web_extractor ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                      Web
-                    </span>
-                  </div>
-                )}
               </div>
             </div>
             <p className="text-center text-[13px] md:text-sm text-soft max-w-3xl mx-auto mt-5 leading-relaxed">
@@ -230,7 +225,6 @@ export default function App() {
             <div className="flex flex-col lg:flex-row gap-10 mt-10">
               <div className="flex-1 min-w-0">
                 <UnifiedInput onSubmit={handleSubmit} loading={loading} />
-                {loading && <div className="mt-6 text-center text-xs text-soft">Analizando con 6 modelos de IA y verificadores de hechos...</div>}
                 {error && <div className="mt-4 text-xs text-rose-600 bg-rose-50 border border-rose-200 px-3 py-2 rounded">{error}</div>}
                 <AnalysisStats result={result} />
               </div>

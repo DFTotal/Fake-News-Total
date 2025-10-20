@@ -1,0 +1,1544 @@
+﻿{
+    "openapi":  "3.1.0",
+    "info":  {
+                 "title":  "Fake News Detector API",
+                 "description":  "\n    ## ­ƒöì API para Detecci├│n de Fake News con IA\n    \n    ### Caracter├¡sticas\n    \n    * **An├ílisis de Contenido**: Texto, URLs o archivos\n    * **IA Integrada**: Modelos de Hugging Face\n    * **5 APIs de Fact-Checking**: Google, ClaimBuster, WordLift, MBFC, RapidAPI\n    * **Autenticaci├│n**: Sistema JWT con registro y login\n    * **Base de Datos**: PostgreSQL en Neon\n    * **M├®tricas**: Estad├¡sticas y tendencias de an├ílisis\n    \n    ### Endpoints Principales\n    \n    * `POST /analyze` - Analizar contenido para detectar fake news\n    * `GET /fact-check/status` - Estado de APIs de fact-checking\n    * `POST /fact-check/multi-check` - Verificaci├│n con m├║ltiples APIs\n    * `POST /auth/register` - Registrar nuevo usuario\n    * `POST /auth/login` - Autenticaci├│n de usuario\n    * `GET /metrics/summary` - Estad├¡sticas generales\n    * `GET /health` - Estado del sistema\n    ",
+                 "version":  "2.0.0"
+             },
+    "paths":  {
+                  "/health/":  {
+                                   "get":  {
+                                               "tags":  [
+                                                            "health"
+                                                        ],
+                                               "summary":  "Health Check",
+                                               "description":  "Verifica el estado de salud del sistema.\n\nChequea:\n- Conexi├│n a base de datos\n- Estado del modelo de IA\n- Funcionalidad del extractor web",
+                                               "operationId":  "health_check_health__get",
+                                               "responses":  {
+                                                                 "200":  {
+                                                                             "description":  "Successful Response",
+                                                                             "content":  {
+                                                                                             "application/json":  {
+                                                                                                                      "schema":  {
+                                                                                                                                     "$ref":  "#/components/schemas/HealthResponse"
+                                                                                                                                 }
+                                                                                                                  }
+                                                                                         }
+                                                                         }
+                                                             }
+                                           }
+                               },
+                  "/health/database":  {
+                                           "get":  {
+                                                       "tags":  [
+                                                                    "health"
+                                                                ],
+                                                       "summary":  "Database Health",
+                                                       "description":  "Verificaci├│n espec├¡fica de la base de datos",
+                                                       "operationId":  "database_health_health_database_get",
+                                                       "responses":  {
+                                                                         "200":  {
+                                                                                     "description":  "Successful Response",
+                                                                                     "content":  {
+                                                                                                     "application/json":  {
+                                                                                                                              "schema":  {
+
+                                                                                                                                         }
+                                                                                                                          }
+                                                                                                 }
+                                                                                 }
+                                                                     }
+                                                   }
+                                       },
+                  "/health/ai-model":  {
+                                           "get":  {
+                                                       "tags":  [
+                                                                    "health"
+                                                                ],
+                                                       "summary":  "Ai Model Health",
+                                                       "description":  "Verificaci├│n espec├¡fica del modelo de IA",
+                                                       "operationId":  "ai_model_health_health_ai_model_get",
+                                                       "responses":  {
+                                                                         "200":  {
+                                                                                     "description":  "Successful Response",
+                                                                                     "content":  {
+                                                                                                     "application/json":  {
+                                                                                                                              "schema":  {
+
+                                                                                                                                         }
+                                                                                                                          }
+                                                                                                 }
+                                                                                 }
+                                                                     }
+                                                   }
+                                       },
+                  "/health/web-extractor":  {
+                                                "get":  {
+                                                            "tags":  [
+                                                                         "health"
+                                                                     ],
+                                                            "summary":  "Web Extractor Health",
+                                                            "description":  "Verificaci├│n espec├¡fica del extractor web",
+                                                            "operationId":  "web_extractor_health_health_web_extractor_get",
+                                                            "responses":  {
+                                                                              "200":  {
+                                                                                          "description":  "Successful Response",
+                                                                                          "content":  {
+                                                                                                          "application/json":  {
+                                                                                                                                   "schema":  {
+
+                                                                                                                                              }
+                                                                                                                               }
+                                                                                                      }
+                                                                                      }
+                                                                          }
+                                                        }
+                                            },
+                  "/auth/register":  {
+                                         "post":  {
+                                                      "tags":  [
+                                                                   "Authentication"
+                                                               ],
+                                                      "summary":  "Register",
+                                                      "description":  "Registra un nuevo usuario en la base de datos.",
+                                                      "operationId":  "register_auth_register_post",
+                                                      "requestBody":  {
+                                                                          "content":  {
+                                                                                          "application/json":  {
+                                                                                                                   "schema":  {
+                                                                                                                                  "$ref":  "#/components/schemas/UserCreate"
+                                                                                                                              }
+                                                                                                               }
+                                                                                      },
+                                                                          "required":  true
+                                                                      },
+                                                      "responses":  {
+                                                                        "200":  {
+                                                                                    "description":  "Successful Response",
+                                                                                    "content":  {
+                                                                                                    "application/json":  {
+                                                                                                                             "schema":  {
+                                                                                                                                            "$ref":  "#/components/schemas/UserPublic"
+                                                                                                                                        }
+                                                                                                                         }
+                                                                                                }
+                                                                                },
+                                                                        "422":  {
+                                                                                    "description":  "Validation Error",
+                                                                                    "content":  {
+                                                                                                    "application/json":  {
+                                                                                                                             "schema":  {
+                                                                                                                                            "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                        }
+                                                                                                                         }
+                                                                                                }
+                                                                                }
+                                                                    }
+                                                  }
+                                     },
+                  "/auth/login":  {
+                                      "post":  {
+                                                   "tags":  [
+                                                                "Authentication"
+                                                            ],
+                                                   "summary":  "Login",
+                                                   "description":  "Autentica un usuario y devuelve un token de acceso.",
+                                                   "operationId":  "login_auth_login_post",
+                                                   "requestBody":  {
+                                                                       "content":  {
+                                                                                       "application/x-www-form-urlencoded":  {
+                                                                                                                                 "schema":  {
+                                                                                                                                                "$ref":  "#/components/schemas/Body_login_auth_login_post"
+                                                                                                                                            }
+                                                                                                                             }
+                                                                                   },
+                                                                       "required":  true
+                                                                   },
+                                                   "responses":  {
+                                                                     "200":  {
+                                                                                 "description":  "Successful Response",
+                                                                                 "content":  {
+                                                                                                 "application/json":  {
+                                                                                                                          "schema":  {
+                                                                                                                                         "$ref":  "#/components/schemas/Token"
+                                                                                                                                     }
+                                                                                                                      }
+                                                                                             }
+                                                                             },
+                                                                     "422":  {
+                                                                                 "description":  "Validation Error",
+                                                                                 "content":  {
+                                                                                                 "application/json":  {
+                                                                                                                          "schema":  {
+                                                                                                                                         "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                     }
+                                                                                                                      }
+                                                                                             }
+                                                                             }
+                                                                 }
+                                               }
+                                  },
+                  "/analyze/":  {
+                                    "post":  {
+                                                 "tags":  [
+                                                              "analysis"
+                                                          ],
+                                                 "summary":  "Analyze Content",
+                                                 "description":  "Analiza contenido de diferentes fuentes para detectar fake news.\n\nAcepta uno de los siguientes:\n- text: Texto directo para analizar\n- url: URL de un art├¡culo de noticias\n- file: Archivo de texto (.txt, .docx, .pdf)",
+                                                 "operationId":  "analyze_content_analyze__post",
+                                                 "requestBody":  {
+                                                                     "content":  {
+                                                                                     "multipart/form-data":  {
+                                                                                                                 "schema":  {
+                                                                                                                                "$ref":  "#/components/schemas/Body_analyze_content_analyze__post"
+                                                                                                                            }
+                                                                                                             }
+                                                                                 }
+                                                                 },
+                                                 "responses":  {
+                                                                   "200":  {
+                                                                               "description":  "Successful Response",
+                                                                               "content":  {
+                                                                                               "application/json":  {
+                                                                                                                        "schema":  {
+                                                                                                                                       "$ref":  "#/components/schemas/AnalysisResult"
+                                                                                                                                   }
+                                                                                                                    }
+                                                                                           }
+                                                                           },
+                                                                   "422":  {
+                                                                               "description":  "Validation Error",
+                                                                               "content":  {
+                                                                                               "application/json":  {
+                                                                                                                        "schema":  {
+                                                                                                                                       "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                   }
+                                                                                                                    }
+                                                                                           }
+                                                                           }
+                                                               }
+                                             }
+                                },
+                  "/analyze/{analysis_id}":  {
+                                                 "get":  {
+                                                             "tags":  [
+                                                                          "analysis"
+                                                                      ],
+                                                             "summary":  "Get Analysis Details",
+                                                             "description":  "Obtiene los detalles completos de un an├ílisis espec├¡fico",
+                                                             "operationId":  "get_analysis_details_analyze__analysis_id__get",
+                                                             "parameters":  [
+                                                                                {
+                                                                                    "name":  "analysis_id",
+                                                                                    "in":  "path",
+                                                                                    "required":  true,
+                                                                                    "schema":  {
+                                                                                                   "type":  "integer",
+                                                                                                   "title":  "Analysis Id"
+                                                                                               }
+                                                                                }
+                                                                            ],
+                                                             "responses":  {
+                                                                               "200":  {
+                                                                                           "description":  "Successful Response",
+                                                                                           "content":  {
+                                                                                                           "application/json":  {
+                                                                                                                                    "schema":  {
+                                                                                                                                                   "$ref":  "#/components/schemas/DetailedAnalysisResult"
+                                                                                                                                               }
+                                                                                                                                }
+                                                                                                       }
+                                                                                       },
+                                                                               "422":  {
+                                                                                           "description":  "Validation Error",
+                                                                                           "content":  {
+                                                                                                           "application/json":  {
+                                                                                                                                    "schema":  {
+                                                                                                                                                   "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                               }
+                                                                                                                                }
+                                                                                                       }
+                                                                                       }
+                                                                           }
+                                                         }
+                                             },
+                  "/fact-check/status":  {
+                                             "get":  {
+                                                         "tags":  [
+                                                                      "External Fact-Checking APIs"
+                                                                  ],
+                                                         "summary":  "Get Apis Status",
+                                                         "description":  "Obtener estado de configuraci├│n de todas las APIs externas\n\nRetorna qu├® APIs est├ín configuradas y listas para usar",
+                                                         "operationId":  "get_apis_status_fact_check_status_get",
+                                                         "responses":  {
+                                                                           "200":  {
+                                                                                       "description":  "Successful Response",
+                                                                                       "content":  {
+                                                                                                       "application/json":  {
+                                                                                                                                "schema":  {
+                                                                                                                                               "$ref":  "#/components/schemas/APIStatus"
+                                                                                                                                           }
+                                                                                                                            }
+                                                                                                   }
+                                                                                   }
+                                                                       }
+                                                     }
+                                         },
+                  "/fact-check/google":  {
+                                             "post":  {
+                                                          "tags":  [
+                                                                       "External Fact-Checking APIs"
+                                                                   ],
+                                                          "summary":  "Google Fact Check",
+                                                          "description":  "Verificar claims usando Google Fact Check Tools API\n\n- **query**: Texto del claim a verificar\n- **language_code**: C├│digo de idioma (default: en)\n\n**Requiere**: Variable de entorno `GOOGLE_FACT_CHECK_API_KEY`",
+                                                          "operationId":  "google_fact_check_fact_check_google_post",
+                                                          "requestBody":  {
+                                                                              "content":  {
+                                                                                              "application/json":  {
+                                                                                                                       "schema":  {
+                                                                                                                                      "$ref":  "#/components/schemas/GoogleFactCheckRequest"
+                                                                                                                                  }
+                                                                                                                   }
+                                                                                          },
+                                                                              "required":  true
+                                                                          },
+                                                          "responses":  {
+                                                                            "200":  {
+                                                                                        "description":  "Successful Response",
+                                                                                        "content":  {
+                                                                                                        "application/json":  {
+                                                                                                                                 "schema":  {
+                                                                                                                                                "type":  "object",
+                                                                                                                                                "title":  "Response Google Fact Check Fact Check Google Post"
+                                                                                                                                            }
+                                                                                                                             }
+                                                                                                    }
+                                                                                    },
+                                                                            "422":  {
+                                                                                        "description":  "Validation Error",
+                                                                                        "content":  {
+                                                                                                        "application/json":  {
+                                                                                                                                 "schema":  {
+                                                                                                                                                "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                            }
+                                                                                                                             }
+                                                                                                    }
+                                                                                    }
+                                                                        }
+                                                      }
+                                         },
+                  "/fact-check/claimbuster":  {
+                                                  "post":  {
+                                                               "tags":  [
+                                                                            "External Fact-Checking APIs"
+                                                                        ],
+                                                               "summary":  "Claimbuster Score",
+                                                               "description":  "Obtener score de verificabilidad con ClaimBuster API\n\n- **text**: Texto a analizar\n\nClaimBuster analiza qu├® tan \"verificable\" es un claim (0-1 score)\n\n**Requiere**: Variable de entorno `CLAIMBUSTER_API_KEY`",
+                                                               "operationId":  "claimbuster_score_fact_check_claimbuster_post",
+                                                               "requestBody":  {
+                                                                                   "content":  {
+                                                                                                   "application/json":  {
+                                                                                                                            "schema":  {
+                                                                                                                                           "$ref":  "#/components/schemas/ClaimBusterRequest"
+                                                                                                                                       }
+                                                                                                                        }
+                                                                                               },
+                                                                                   "required":  true
+                                                                               },
+                                                               "responses":  {
+                                                                                 "200":  {
+                                                                                             "description":  "Successful Response",
+                                                                                             "content":  {
+                                                                                                             "application/json":  {
+                                                                                                                                      "schema":  {
+                                                                                                                                                     "type":  "object",
+                                                                                                                                                     "title":  "Response Claimbuster Score Fact Check Claimbuster Post"
+                                                                                                                                                 }
+                                                                                                                                  }
+                                                                                                         }
+                                                                                         },
+                                                                                 "422":  {
+                                                                                             "description":  "Validation Error",
+                                                                                             "content":  {
+                                                                                                             "application/json":  {
+                                                                                                                                      "schema":  {
+                                                                                                                                                     "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                                 }
+                                                                                                                                  }
+                                                                                                         }
+                                                                                         }
+                                                                             }
+                                                           }
+                                              },
+                  "/fact-check/wordlift":  {
+                                               "post":  {
+                                                            "tags":  [
+                                                                         "External Fact-Checking APIs"
+                                                                     ],
+                                                            "summary":  "Wordlift Fact Check",
+                                                            "description":  "Verificar hechos usando WordLift Fact-Checking API\n\n- **text**: Texto a verificar\n\nWordLift analiza hechos y proporciona verificaci├│n sem├íntica\n\n**Requiere**: Variable de entorno `WORDLIFT_API_KEY`",
+                                                            "operationId":  "wordlift_fact_check_fact_check_wordlift_post",
+                                                            "requestBody":  {
+                                                                                "content":  {
+                                                                                                "application/json":  {
+                                                                                                                         "schema":  {
+                                                                                                                                        "$ref":  "#/components/schemas/WordLiftRequest"
+                                                                                                                                    }
+                                                                                                                     }
+                                                                                            },
+                                                                                "required":  true
+                                                                            },
+                                                            "responses":  {
+                                                                              "200":  {
+                                                                                          "description":  "Successful Response",
+                                                                                          "content":  {
+                                                                                                          "application/json":  {
+                                                                                                                                   "schema":  {
+                                                                                                                                                  "type":  "object",
+                                                                                                                                                  "title":  "Response Wordlift Fact Check Fact Check Wordlift Post"
+                                                                                                                                              }
+                                                                                                                               }
+                                                                                                      }
+                                                                                      },
+                                                                              "422":  {
+                                                                                          "description":  "Validation Error",
+                                                                                          "content":  {
+                                                                                                          "application/json":  {
+                                                                                                                                   "schema":  {
+                                                                                                                                                  "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                              }
+                                                                                                                               }
+                                                                                                      }
+                                                                                      }
+                                                                          }
+                                                        }
+                                           },
+                  "/fact-check/mbfc":  {
+                                           "post":  {
+                                                        "tags":  [
+                                                                     "External Fact-Checking APIs"
+                                                                 ],
+                                                        "summary":  "Mbfc Check Source",
+                                                        "description":  "Verificar sesgo y credibilidad de una fuente con MBFC API\n\n- **url**: URL de la fuente a verificar\n\nMedia Bias/Fact Check proporciona informaci├│n sobre:\n- Sesgo pol├¡tico\n- Credibilidad de la fuente\n- Precisi├│n factual\n\n**Requiere**: Variable de entorno `MBFC_API_KEY`",
+                                                        "operationId":  "mbfc_check_source_fact_check_mbfc_post",
+                                                        "requestBody":  {
+                                                                            "content":  {
+                                                                                            "application/json":  {
+                                                                                                                     "schema":  {
+                                                                                                                                    "$ref":  "#/components/schemas/MBFCRequest"
+                                                                                                                                }
+                                                                                                                 }
+                                                                                        },
+                                                                            "required":  true
+                                                                        },
+                                                        "responses":  {
+                                                                          "200":  {
+                                                                                      "description":  "Successful Response",
+                                                                                      "content":  {
+                                                                                                      "application/json":  {
+                                                                                                                               "schema":  {
+                                                                                                                                              "type":  "object",
+                                                                                                                                              "title":  "Response Mbfc Check Source Fact Check Mbfc Post"
+                                                                                                                                          }
+                                                                                                                           }
+                                                                                                  }
+                                                                                  },
+                                                                          "422":  {
+                                                                                      "description":  "Validation Error",
+                                                                                      "content":  {
+                                                                                                      "application/json":  {
+                                                                                                                               "schema":  {
+                                                                                                                                              "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                          }
+                                                                                                                           }
+                                                                                                  }
+                                                                                  }
+                                                                      }
+                                                    }
+                                       },
+                  "/fact-check/rapidapi":  {
+                                               "post":  {
+                                                            "tags":  [
+                                                                         "External Fact-Checking APIs"
+                                                                     ],
+                                                            "summary":  "Rapidapi Detect",
+                                                            "description":  "Detectar fake news usando RapidAPI Fake News Detection\n\n- **text**: Contenido del art├¡culo\n- **title**: T├¡tulo del art├¡culo (opcional)\n\nUsa modelos de ML para detectar fake news\n\n**Requiere**: Variable de entorno `RAPIDAPI_KEY`",
+                                                            "operationId":  "rapidapi_detect_fact_check_rapidapi_post",
+                                                            "requestBody":  {
+                                                                                "content":  {
+                                                                                                "application/json":  {
+                                                                                                                         "schema":  {
+                                                                                                                                        "$ref":  "#/components/schemas/RapidAPIRequest"
+                                                                                                                                    }
+                                                                                                                     }
+                                                                                            },
+                                                                                "required":  true
+                                                                            },
+                                                            "responses":  {
+                                                                              "200":  {
+                                                                                          "description":  "Successful Response",
+                                                                                          "content":  {
+                                                                                                          "application/json":  {
+                                                                                                                                   "schema":  {
+                                                                                                                                                  "type":  "object",
+                                                                                                                                                  "title":  "Response Rapidapi Detect Fact Check Rapidapi Post"
+                                                                                                                                              }
+                                                                                                                               }
+                                                                                                      }
+                                                                                      },
+                                                                              "422":  {
+                                                                                          "description":  "Validation Error",
+                                                                                          "content":  {
+                                                                                                          "application/json":  {
+                                                                                                                                   "schema":  {
+                                                                                                                                                  "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                              }
+                                                                                                                               }
+                                                                                                      }
+                                                                                      }
+                                                                          }
+                                                        }
+                                           },
+                  "/fact-check/multi-check":  {
+                                                  "post":  {
+                                                               "tags":  [
+                                                                            "External Fact-Checking APIs"
+                                                                        ],
+                                                               "summary":  "Multi Api Check",
+                                                               "description":  "Analizar con m├║ltiples APIs simult├íneamente\n\n- **text**: Texto a analizar\n- **url**: URL de la fuente (opcional)\n- **title**: T├¡tulo (opcional)\n- **apis**: Lista de APIs a usar [\"google\", \"claimbuster\", \"wordlift\", \"mbfc\", \"rapidapi\"] o [\"all\"]\n\nEjecuta fact-checking en m├║ltiples APIs y agrega resultados",
+                                                               "operationId":  "multi_api_check_fact_check_multi_check_post",
+                                                               "requestBody":  {
+                                                                                   "content":  {
+                                                                                                   "application/json":  {
+                                                                                                                            "schema":  {
+                                                                                                                                           "$ref":  "#/components/schemas/MultiAPIRequest"
+                                                                                                                                       }
+                                                                                                                        }
+                                                                                               },
+                                                                                   "required":  true
+                                                                               },
+                                                               "responses":  {
+                                                                                 "200":  {
+                                                                                             "description":  "Successful Response",
+                                                                                             "content":  {
+                                                                                                             "application/json":  {
+                                                                                                                                      "schema":  {
+                                                                                                                                                     "type":  "object",
+                                                                                                                                                     "title":  "Response Multi Api Check Fact Check Multi Check Post"
+                                                                                                                                                 }
+                                                                                                                                  }
+                                                                                                         }
+                                                                                         },
+                                                                                 "422":  {
+                                                                                             "description":  "Validation Error",
+                                                                                             "content":  {
+                                                                                                             "application/json":  {
+                                                                                                                                      "schema":  {
+                                                                                                                                                     "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                                 }
+                                                                                                                                  }
+                                                                                                         }
+                                                                                         }
+                                                                             }
+                                                           }
+                                              },
+                  "/metrics/summary":  {
+                                           "get":  {
+                                                       "tags":  [
+                                                                    "metrics"
+                                                                ],
+                                                       "summary":  "Get Summary Metrics",
+                                                       "description":  "Obtiene m├®tricas resumidas de todos los an├ílisis realizados.\n\nIncluye:\n- Total de an├ílisis\n- Conteo por categor├¡a (fake, real, uncertain)\n- Porcentajes por categor├¡a\n- Promedios de score y confianza\n- Distribuci├│n por tipo de fuente",
+                                                       "operationId":  "get_summary_metrics_metrics_summary_get",
+                                                       "responses":  {
+                                                                         "200":  {
+                                                                                     "description":  "Successful Response",
+                                                                                     "content":  {
+                                                                                                     "application/json":  {
+                                                                                                                              "schema":  {
+                                                                                                                                             "$ref":  "#/components/schemas/SummaryMetrics"
+                                                                                                                                         }
+                                                                                                                          }
+                                                                                                 }
+                                                                                 }
+                                                                     }
+                                                   }
+                                       },
+                  "/metrics/timeseries":  {
+                                              "get":  {
+                                                          "tags":  [
+                                                                       "metrics"
+                                                                   ],
+                                                          "summary":  "Get Timeseries Metrics",
+                                                          "description":  "Obtiene datos de series temporales para an├ílisis de tendencias.\n\nPar├ímetros:\n- days: N├║mero de d├¡as hacia atr├ís a incluir (1-365)\n\nRetorna datos diarios incluyendo:\n- Conteos por categor├¡a\n- Promedios de score y confianza\n- Total de an├ílisis por d├¡a",
+                                                          "operationId":  "get_timeseries_metrics_metrics_timeseries_get",
+                                                          "parameters":  [
+                                                                             {
+                                                                                 "name":  "days",
+                                                                                 "in":  "query",
+                                                                                 "required":  false,
+                                                                                 "schema":  {
+                                                                                                "type":  "integer",
+                                                                                                "maximum":  365,
+                                                                                                "minimum":  1,
+                                                                                                "description":  "N├║mero de d├¡as hacia atr├ís",
+                                                                                                "default":  7,
+                                                                                                "title":  "Days"
+                                                                                            },
+                                                                                 "description":  "N├║mero de d├¡as hacia atr├ís"
+                                                                             }
+                                                                         ],
+                                                          "responses":  {
+                                                                            "200":  {
+                                                                                        "description":  "Successful Response",
+                                                                                        "content":  {
+                                                                                                        "application/json":  {
+                                                                                                                                 "schema":  {
+                                                                                                                                                "$ref":  "#/components/schemas/TimeseriesResponse"
+                                                                                                                                            }
+                                                                                                                             }
+                                                                                                    }
+                                                                                    },
+                                                                            "422":  {
+                                                                                        "description":  "Validation Error",
+                                                                                        "content":  {
+                                                                                                        "application/json":  {
+                                                                                                                                 "schema":  {
+                                                                                                                                                "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                            }
+                                                                                                                             }
+                                                                                                    }
+                                                                                    }
+                                                                        }
+                                                      }
+                                          },
+                  "/metrics/refresh-daily":  {
+                                                 "post":  {
+                                                              "tags":  [
+                                                                           "metrics"
+                                                                       ],
+                                                              "summary":  "Refresh Daily Stats",
+                                                              "description":  "Actualiza las estad├¡sticas diarias para una fecha espec├¡fica.\n\nSi no se proporciona fecha, actualiza las estad├¡sticas de hoy.\n├Ütil para recalcular estad├¡sticas o corregir datos.",
+                                                              "operationId":  "refresh_daily_stats_metrics_refresh_daily_post",
+                                                              "parameters":  [
+                                                                                 {
+                                                                                     "name":  "date",
+                                                                                     "in":  "query",
+                                                                                     "required":  false,
+                                                                                     "schema":  {
+                                                                                                    "anyOf":  [
+                                                                                                                  {
+                                                                                                                      "type":  "string"
+                                                                                                                  },
+                                                                                                                  {
+                                                                                                                      "type":  "null"
+                                                                                                                  }
+                                                                                                              ],
+                                                                                                    "description":  "Fecha en formato YYYY-MM-DD (opcional)",
+                                                                                                    "title":  "Date"
+                                                                                                },
+                                                                                     "description":  "Fecha en formato YYYY-MM-DD (opcional)"
+                                                                                 }
+                                                                             ],
+                                                              "responses":  {
+                                                                                "200":  {
+                                                                                            "description":  "Successful Response",
+                                                                                            "content":  {
+                                                                                                            "application/json":  {
+                                                                                                                                     "schema":  {
+
+                                                                                                                                                }
+                                                                                                                                 }
+                                                                                                        }
+                                                                                        },
+                                                                                "422":  {
+                                                                                            "description":  "Validation Error",
+                                                                                            "content":  {
+                                                                                                            "application/json":  {
+                                                                                                                                     "schema":  {
+                                                                                                                                                    "$ref":  "#/components/schemas/HTTPValidationError"
+                                                                                                                                                }
+                                                                                                                                 }
+                                                                                                        }
+                                                                                        }
+                                                                            }
+                                                          }
+                                             },
+                  "/":  {
+                            "get":  {
+                                        "tags":  [
+                                                     "Root"
+                                                 ],
+                                        "summary":  "Root",
+                                        "description":  "Informaci├│n b├ísica de la API",
+                                        "operationId":  "root__get",
+                                        "responses":  {
+                                                          "200":  {
+                                                                      "description":  "Successful Response",
+                                                                      "content":  {
+                                                                                      "application/json":  {
+                                                                                                               "schema":  {
+
+                                                                                                                          }
+                                                                                                           }
+                                                                                  }
+                                                                  }
+                                                      }
+                                    }
+                        }
+              },
+    "components":  {
+                       "schemas":  {
+                                       "APIStatus":  {
+                                                         "properties":  {
+                                                                            "google_fact_check":  {
+                                                                                                      "type":  "boolean",
+                                                                                                      "title":  "Google Fact Check"
+                                                                                                  },
+                                                                            "claimbuster":  {
+                                                                                                "type":  "boolean",
+                                                                                                "title":  "Claimbuster"
+                                                                                            },
+                                                                            "wordlift":  {
+                                                                                             "type":  "boolean",
+                                                                                             "title":  "Wordlift"
+                                                                                         },
+                                                                            "mbfc":  {
+                                                                                         "type":  "boolean",
+                                                                                         "title":  "Mbfc"
+                                                                                     },
+                                                                            "rapidapi":  {
+                                                                                             "type":  "boolean",
+                                                                                             "title":  "Rapidapi"
+                                                                                         },
+                                                                            "configured_apis":  {
+                                                                                                    "items":  {
+                                                                                                                  "type":  "string"
+                                                                                                              },
+                                                                                                    "type":  "array",
+                                                                                                    "title":  "Configured Apis"
+                                                                                                }
+                                                                        },
+                                                         "type":  "object",
+                                                         "required":  [
+                                                                          "google_fact_check",
+                                                                          "claimbuster",
+                                                                          "wordlift",
+                                                                          "mbfc",
+                                                                          "rapidapi",
+                                                                          "configured_apis"
+                                                                      ],
+                                                         "title":  "APIStatus",
+                                                         "description":  "Estado de configuraci├│n de las APIs"
+                                                     },
+                                       "AnalysisLabel":  {
+                                                             "type":  "string",
+                                                             "enum":  [
+                                                                          "REAL",
+                                                                          "FAKE",
+                                                                          "UNCERTAIN"
+                                                                      ],
+                                                             "title":  "AnalysisLabel"
+                                                         },
+                                       "AnalysisMetricsResponse":  {
+                                                                       "properties":  {
+                                                                                          "word_count":  {
+                                                                                                             "anyOf":  [
+                                                                                                                           {
+                                                                                                                               "type":  "integer"
+                                                                                                                           },
+                                                                                                                           {
+                                                                                                                               "type":  "null"
+                                                                                                                           }
+                                                                                                                       ],
+                                                                                                             "title":  "Word Count"
+                                                                                                         },
+                                                                                          "sentence_count":  {
+                                                                                                                 "anyOf":  [
+                                                                                                                               {
+                                                                                                                                   "type":  "integer"
+                                                                                                                               },
+                                                                                                                               {
+                                                                                                                                   "type":  "null"
+                                                                                                                               }
+                                                                                                                           ],
+                                                                                                                 "title":  "Sentence Count"
+                                                                                                             },
+                                                                                          "readability_score":  {
+                                                                                                                    "anyOf":  [
+                                                                                                                                  {
+                                                                                                                                      "type":  "number"
+                                                                                                                                  },
+                                                                                                                                  {
+                                                                                                                                      "type":  "null"
+                                                                                                                                  }
+                                                                                                                              ],
+                                                                                                                    "title":  "Readability Score"
+                                                                                                                },
+                                                                                          "extraction_success":  {
+                                                                                                                     "type":  "boolean",
+                                                                                                                     "title":  "Extraction Success"
+                                                                                                                 },
+                                                                                          "extraction_method":  {
+                                                                                                                    "anyOf":  [
+                                                                                                                                  {
+                                                                                                                                      "type":  "string"
+                                                                                                                                  },
+                                                                                                                                  {
+                                                                                                                                      "type":  "null"
+                                                                                                                                  }
+                                                                                                                              ],
+                                                                                                                    "title":  "Extraction Method"
+                                                                                                                }
+                                                                                      },
+                                                                       "type":  "object",
+                                                                       "required":  [
+                                                                                        "word_count",
+                                                                                        "sentence_count",
+                                                                                        "readability_score",
+                                                                                        "extraction_success",
+                                                                                        "extraction_method"
+                                                                                    ],
+                                                                       "title":  "AnalysisMetricsResponse"
+                                                                   },
+                                       "AnalysisResult":  {
+                                                              "properties":  {
+                                                                                 "id":  {
+                                                                                            "type":  "integer",
+                                                                                            "title":  "Id"
+                                                                                        },
+                                                                                 "score":  {
+                                                                                               "type":  "number",
+                                                                                               "maximum":  1.0,
+                                                                                               "minimum":  0.0,
+                                                                                               "title":  "Score",
+                                                                                               "description":  "Score de 0.0 (fake) a 1.0 (real)"
+                                                                                           },
+                                                                                 "label":  {
+                                                                                               "$ref":  "#/components/schemas/AnalysisLabel"
+                                                                                           },
+                                                                                 "confidence":  {
+                                                                                                    "type":  "number",
+                                                                                                    "maximum":  1.0,
+                                                                                                    "minimum":  0.0,
+                                                                                                    "title":  "Confidence",
+                                                                                                    "description":  "Confianza del modelo"
+                                                                                                },
+                                                                                 "model_version":  {
+                                                                                                       "type":  "string",
+                                                                                                       "title":  "Model Version"
+                                                                                                   },
+                                                                                 "analysis_time_ms":  {
+                                                                                                          "anyOf":  [
+                                                                                                                        {
+                                                                                                                            "type":  "integer"
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "type":  "null"
+                                                                                                                        }
+                                                                                                                    ],
+                                                                                                          "title":  "Analysis Time Ms"
+                                                                                                      },
+                                                                                 "content_length":  {
+                                                                                                        "type":  "integer",
+                                                                                                        "title":  "Content Length"
+                                                                                                    },
+                                                                                 "source_type":  {
+                                                                                                     "$ref":  "#/components/schemas/SourceType"
+                                                                                                 },
+                                                                                 "created_at":  {
+                                                                                                    "type":  "string",
+                                                                                                    "format":  "date-time",
+                                                                                                    "title":  "Created At"
+                                                                                                }
+                                                                             },
+                                                              "type":  "object",
+                                                              "required":  [
+                                                                               "id",
+                                                                               "score",
+                                                                               "label",
+                                                                               "confidence",
+                                                                               "model_version",
+                                                                               "analysis_time_ms",
+                                                                               "content_length",
+                                                                               "source_type",
+                                                                               "created_at"
+                                                                           ],
+                                                              "title":  "AnalysisResult"
+                                                          },
+                                       "Body_analyze_content_analyze__post":  {
+                                                                                  "properties":  {
+                                                                                                     "text":  {
+                                                                                                                  "anyOf":  [
+                                                                                                                                {
+                                                                                                                                    "type":  "string"
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "type":  "null"
+                                                                                                                                }
+                                                                                                                            ],
+                                                                                                                  "title":  "Text"
+                                                                                                              },
+                                                                                                     "url":  {
+                                                                                                                 "anyOf":  [
+                                                                                                                               {
+                                                                                                                                   "type":  "string"
+                                                                                                                               },
+                                                                                                                               {
+                                                                                                                                   "type":  "null"
+                                                                                                                               }
+                                                                                                                           ],
+                                                                                                                 "title":  "Url"
+                                                                                                             },
+                                                                                                     "file":  {
+                                                                                                                  "anyOf":  [
+                                                                                                                                {
+                                                                                                                                    "type":  "string",
+                                                                                                                                    "format":  "binary"
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "type":  "null"
+                                                                                                                                }
+                                                                                                                            ],
+                                                                                                                  "title":  "File"
+                                                                                                              }
+                                                                                                 },
+                                                                                  "type":  "object",
+                                                                                  "title":  "Body_analyze_content_analyze__post"
+                                                                              },
+                                       "Body_login_auth_login_post":  {
+                                                                          "properties":  {
+                                                                                             "grant_type":  {
+                                                                                                                "anyOf":  [
+                                                                                                                              {
+                                                                                                                                  "type":  "string",
+                                                                                                                                  "pattern":  "^password$"
+                                                                                                                              },
+                                                                                                                              {
+                                                                                                                                  "type":  "null"
+                                                                                                                              }
+                                                                                                                          ],
+                                                                                                                "title":  "Grant Type"
+                                                                                                            },
+                                                                                             "username":  {
+                                                                                                              "type":  "string",
+                                                                                                              "title":  "Username"
+                                                                                                          },
+                                                                                             "password":  {
+                                                                                                              "type":  "string",
+                                                                                                              "format":  "password",
+                                                                                                              "title":  "Password"
+                                                                                                          },
+                                                                                             "scope":  {
+                                                                                                           "type":  "string",
+                                                                                                           "title":  "Scope",
+                                                                                                           "default":  ""
+                                                                                                       },
+                                                                                             "client_id":  {
+                                                                                                               "anyOf":  [
+                                                                                                                             {
+                                                                                                                                 "type":  "string"
+                                                                                                                             },
+                                                                                                                             {
+                                                                                                                                 "type":  "null"
+                                                                                                                             }
+                                                                                                                         ],
+                                                                                                               "title":  "Client Id"
+                                                                                                           },
+                                                                                             "client_secret":  {
+                                                                                                                   "anyOf":  [
+                                                                                                                                 {
+                                                                                                                                     "type":  "string"
+                                                                                                                                 },
+                                                                                                                                 {
+                                                                                                                                     "type":  "null"
+                                                                                                                                 }
+                                                                                                                             ],
+                                                                                                                   "format":  "password",
+                                                                                                                   "title":  "Client Secret"
+                                                                                                               }
+                                                                                         },
+                                                                          "type":  "object",
+                                                                          "required":  [
+                                                                                           "username",
+                                                                                           "password"
+                                                                                       ],
+                                                                          "title":  "Body_login_auth_login_post"
+                                                                      },
+                                       "ClaimBusterRequest":  {
+                                                                  "properties":  {
+                                                                                     "text":  {
+                                                                                                  "type":  "string",
+                                                                                                  "title":  "Text",
+                                                                                                  "description":  "Texto a analizar para verificabilidad"
+                                                                                              }
+                                                                                 },
+                                                                  "type":  "object",
+                                                                  "required":  [
+                                                                                   "text"
+                                                                               ],
+                                                                  "title":  "ClaimBusterRequest",
+                                                                  "description":  "Request para ClaimBuster API"
+                                                              },
+                                       "DetailedAnalysisResult":  {
+                                                                      "properties":  {
+                                                                                         "id":  {
+                                                                                                    "type":  "integer",
+                                                                                                    "title":  "Id"
+                                                                                                },
+                                                                                         "score":  {
+                                                                                                       "type":  "number",
+                                                                                                       "maximum":  1.0,
+                                                                                                       "minimum":  0.0,
+                                                                                                       "title":  "Score",
+                                                                                                       "description":  "Score de 0.0 (fake) a 1.0 (real)"
+                                                                                                   },
+                                                                                         "label":  {
+                                                                                                       "$ref":  "#/components/schemas/AnalysisLabel"
+                                                                                                   },
+                                                                                         "confidence":  {
+                                                                                                            "type":  "number",
+                                                                                                            "maximum":  1.0,
+                                                                                                            "minimum":  0.0,
+                                                                                                            "title":  "Confidence",
+                                                                                                            "description":  "Confianza del modelo"
+                                                                                                        },
+                                                                                         "model_version":  {
+                                                                                                               "type":  "string",
+                                                                                                               "title":  "Model Version"
+                                                                                                           },
+                                                                                         "analysis_time_ms":  {
+                                                                                                                  "anyOf":  [
+                                                                                                                                {
+                                                                                                                                    "type":  "integer"
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "type":  "null"
+                                                                                                                                }
+                                                                                                                            ],
+                                                                                                                  "title":  "Analysis Time Ms"
+                                                                                                              },
+                                                                                         "content_length":  {
+                                                                                                                "type":  "integer",
+                                                                                                                "title":  "Content Length"
+                                                                                                            },
+                                                                                         "source_type":  {
+                                                                                                             "$ref":  "#/components/schemas/SourceType"
+                                                                                                         },
+                                                                                         "created_at":  {
+                                                                                                            "type":  "string",
+                                                                                                            "format":  "date-time",
+                                                                                                            "title":  "Created At"
+                                                                                                        },
+                                                                                         "content":  {
+                                                                                                         "type":  "string",
+                                                                                                         "title":  "Content"
+                                                                                                     },
+                                                                                         "source_url":  {
+                                                                                                            "anyOf":  [
+                                                                                                                          {
+                                                                                                                              "type":  "string"
+                                                                                                                          },
+                                                                                                                          {
+                                                                                                                              "type":  "null"
+                                                                                                                          }
+                                                                                                                      ],
+                                                                                                            "title":  "Source Url"
+                                                                                                        },
+                                                                                         "file_name":  {
+                                                                                                           "anyOf":  [
+                                                                                                                         {
+                                                                                                                             "type":  "string"
+                                                                                                                         },
+                                                                                                                         {
+                                                                                                                             "type":  "null"
+                                                                                                                         }
+                                                                                                                     ],
+                                                                                                           "title":  "File Name"
+                                                                                                       },
+                                                                                         "metrics":  {
+                                                                                                         "anyOf":  [
+                                                                                                                       {
+                                                                                                                           "$ref":  "#/components/schemas/AnalysisMetricsResponse"
+                                                                                                                       },
+                                                                                                                       {
+                                                                                                                           "type":  "null"
+                                                                                                                       }
+                                                                                                                   ]
+                                                                                                     }
+                                                                                     },
+                                                                      "type":  "object",
+                                                                      "required":  [
+                                                                                       "id",
+                                                                                       "score",
+                                                                                       "label",
+                                                                                       "confidence",
+                                                                                       "model_version",
+                                                                                       "analysis_time_ms",
+                                                                                       "content_length",
+                                                                                       "source_type",
+                                                                                       "created_at",
+                                                                                       "content",
+                                                                                       "source_url",
+                                                                                       "file_name",
+                                                                                       "metrics"
+                                                                                   ],
+                                                                      "title":  "DetailedAnalysisResult"
+                                                                  },
+                                       "GoogleFactCheckRequest":  {
+                                                                      "properties":  {
+                                                                                         "query":  {
+                                                                                                       "type":  "string",
+                                                                                                       "title":  "Query",
+                                                                                                       "description":  "Texto del claim a verificar"
+                                                                                                   },
+                                                                                         "language_code":  {
+                                                                                                               "type":  "string",
+                                                                                                               "title":  "Language Code",
+                                                                                                               "description":  "C├│digo de idioma (ej: en, es)",
+                                                                                                               "default":  "en"
+                                                                                                           }
+                                                                                     },
+                                                                      "type":  "object",
+                                                                      "required":  [
+                                                                                       "query"
+                                                                                   ],
+                                                                      "title":  "GoogleFactCheckRequest",
+                                                                      "description":  "Request para Google Fact Check API"
+                                                                  },
+                                       "HTTPValidationError":  {
+                                                                   "properties":  {
+                                                                                      "detail":  {
+                                                                                                     "items":  {
+                                                                                                                   "$ref":  "#/components/schemas/ValidationError"
+                                                                                                               },
+                                                                                                     "type":  "array",
+                                                                                                     "title":  "Detail"
+                                                                                                 }
+                                                                                  },
+                                                                   "type":  "object",
+                                                                   "title":  "HTTPValidationError"
+                                                               },
+                                       "HealthResponse":  {
+                                                              "properties":  {
+                                                                                 "status":  {
+                                                                                                "type":  "string",
+                                                                                                "enum":  [
+                                                                                                             "healthy",
+                                                                                                             "degraded",
+                                                                                                             "unhealthy"
+                                                                                                         ],
+                                                                                                "title":  "Status"
+                                                                                            },
+                                                                                 "database":  {
+                                                                                                  "type":  "boolean",
+                                                                                                  "title":  "Database"
+                                                                                              },
+                                                                                 "ai_model":  {
+                                                                                                  "type":  "boolean",
+                                                                                                  "title":  "Ai Model"
+                                                                                              },
+                                                                                 "web_extractor":  {
+                                                                                                       "type":  "boolean",
+                                                                                                       "title":  "Web Extractor"
+                                                                                                   },
+                                                                                 "timestamp":  {
+                                                                                                   "type":  "string",
+                                                                                                   "format":  "date-time",
+                                                                                                   "title":  "Timestamp"
+                                                                                               },
+                                                                                 "version":  {
+                                                                                                 "type":  "string",
+                                                                                                 "title":  "Version",
+                                                                                                 "default":  "1.0.0"
+                                                                                             },
+                                                                                 "uptime_seconds":  {
+                                                                                                        "anyOf":  [
+                                                                                                                      {
+                                                                                                                          "type":  "integer"
+                                                                                                                      },
+                                                                                                                      {
+                                                                                                                          "type":  "null"
+                                                                                                                      }
+                                                                                                                  ],
+                                                                                                        "title":  "Uptime Seconds"
+                                                                                                    }
+                                                                             },
+                                                              "type":  "object",
+                                                              "required":  [
+                                                                               "status",
+                                                                               "database",
+                                                                               "ai_model",
+                                                                               "web_extractor",
+                                                                               "timestamp",
+                                                                               "uptime_seconds"
+                                                                           ],
+                                                              "title":  "HealthResponse"
+                                                          },
+                                       "MBFCRequest":  {
+                                                           "properties":  {
+                                                                              "url":  {
+                                                                                          "type":  "string",
+                                                                                          "title":  "Url",
+                                                                                          "description":  "URL de la fuente a verificar"
+                                                                                      }
+                                                                          },
+                                                           "type":  "object",
+                                                           "required":  [
+                                                                            "url"
+                                                                        ],
+                                                           "title":  "MBFCRequest",
+                                                           "description":  "Request para MBFC API"
+                                                       },
+                                       "MultiAPIRequest":  {
+                                                               "properties":  {
+                                                                                  "text":  {
+                                                                                               "type":  "string",
+                                                                                               "title":  "Text",
+                                                                                               "description":  "Texto a analizar"
+                                                                                           },
+                                                                                  "url":  {
+                                                                                              "anyOf":  [
+                                                                                                            {
+                                                                                                                "type":  "string"
+                                                                                                            },
+                                                                                                            {
+                                                                                                                "type":  "null"
+                                                                                                            }
+                                                                                                        ],
+                                                                                              "title":  "Url",
+                                                                                              "description":  "URL de la fuente (opcional)"
+                                                                                          },
+                                                                                  "title":  {
+                                                                                                "anyOf":  [
+                                                                                                              {
+                                                                                                                  "type":  "string"
+                                                                                                              },
+                                                                                                              {
+                                                                                                                  "type":  "null"
+                                                                                                              }
+                                                                                                          ],
+                                                                                                "title":  "Title",
+                                                                                                "description":  "T├¡tulo (opcional)"
+                                                                                            },
+                                                                                  "apis":  {
+                                                                                               "items":  {
+                                                                                                             "type":  "string"
+                                                                                                         },
+                                                                                               "type":  "array",
+                                                                                               "title":  "Apis",
+                                                                                               "description":  "APIs a usar: google, claimbuster, wordlift, mbfc, rapidapi, o \u0027all\u0027",
+                                                                                               "default":  [
+                                                                                                               "all"
+                                                                                                           ]
+                                                                                           }
+                                                                              },
+                                                               "type":  "object",
+                                                               "required":  [
+                                                                                "text"
+                                                                            ],
+                                                               "title":  "MultiAPIRequest",
+                                                               "description":  "Request para an├ílisis con m├║ltiples APIs"
+                                                           },
+                                       "RapidAPIRequest":  {
+                                                               "properties":  {
+                                                                                  "text":  {
+                                                                                               "type":  "string",
+                                                                                               "title":  "Text",
+                                                                                               "description":  "Contenido del art├¡culo"
+                                                                                           },
+                                                                                  "title":  {
+                                                                                                "type":  "string",
+                                                                                                "title":  "Title",
+                                                                                                "description":  "T├¡tulo del art├¡culo (opcional)",
+                                                                                                "default":  ""
+                                                                                            }
+                                                                              },
+                                                               "type":  "object",
+                                                               "required":  [
+                                                                                "text"
+                                                                            ],
+                                                               "title":  "RapidAPIRequest",
+                                                               "description":  "Request para RapidAPI Fake News Detection"
+                                                           },
+                                       "SourceType":  {
+                                                          "type":  "string",
+                                                          "enum":  [
+                                                                       "text",
+                                                                       "url",
+                                                                       "file"
+                                                                   ],
+                                                          "title":  "SourceType"
+                                                      },
+                                       "SummaryMetrics":  {
+                                                              "properties":  {
+                                                                                 "total_analyses":  {
+                                                                                                        "type":  "integer",
+                                                                                                        "title":  "Total Analyses"
+                                                                                                    },
+                                                                                 "fake_count":  {
+                                                                                                    "type":  "integer",
+                                                                                                    "title":  "Fake Count"
+                                                                                                },
+                                                                                 "real_count":  {
+                                                                                                    "type":  "integer",
+                                                                                                    "title":  "Real Count"
+                                                                                                },
+                                                                                 "uncertain_count":  {
+                                                                                                         "type":  "integer",
+                                                                                                         "title":  "Uncertain Count"
+                                                                                                     },
+                                                                                 "fake_percentage":  {
+                                                                                                         "type":  "number",
+                                                                                                         "title":  "Fake Percentage"
+                                                                                                     },
+                                                                                 "real_percentage":  {
+                                                                                                         "type":  "number",
+                                                                                                         "title":  "Real Percentage"
+                                                                                                     },
+                                                                                 "uncertain_percentage":  {
+                                                                                                              "type":  "number",
+                                                                                                              "title":  "Uncertain Percentage"
+                                                                                                          },
+                                                                                 "avg_score":  {
+                                                                                                   "anyOf":  [
+                                                                                                                 {
+                                                                                                                     "type":  "number"
+                                                                                                                 },
+                                                                                                                 {
+                                                                                                                     "type":  "null"
+                                                                                                                 }
+                                                                                                             ],
+                                                                                                   "title":  "Avg Score"
+                                                                                               },
+                                                                                 "avg_confidence":  {
+                                                                                                        "anyOf":  [
+                                                                                                                      {
+                                                                                                                          "type":  "number"
+                                                                                                                      },
+                                                                                                                      {
+                                                                                                                          "type":  "null"
+                                                                                                                      }
+                                                                                                                  ],
+                                                                                                        "title":  "Avg Confidence"
+                                                                                                    },
+                                                                                 "text_analyses":  {
+                                                                                                       "type":  "integer",
+                                                                                                       "title":  "Text Analyses"
+                                                                                                   },
+                                                                                 "url_analyses":  {
+                                                                                                      "type":  "integer",
+                                                                                                      "title":  "Url Analyses"
+                                                                                                  },
+                                                                                 "file_analyses":  {
+                                                                                                       "type":  "integer",
+                                                                                                       "title":  "File Analyses"
+                                                                                                   }
+                                                                             },
+                                                              "type":  "object",
+                                                              "required":  [
+                                                                               "total_analyses",
+                                                                               "fake_count",
+                                                                               "real_count",
+                                                                               "uncertain_count",
+                                                                               "fake_percentage",
+                                                                               "real_percentage",
+                                                                               "uncertain_percentage",
+                                                                               "avg_score",
+                                                                               "avg_confidence",
+                                                                               "text_analyses",
+                                                                               "url_analyses",
+                                                                               "file_analyses"
+                                                                           ],
+                                                              "title":  "SummaryMetrics"
+                                                          },
+                                       "TimeseriesDataPoint":  {
+                                                                   "properties":  {
+                                                                                      "date":  {
+                                                                                                   "type":  "string",
+                                                                                                   "title":  "Date"
+                                                                                               },
+                                                                                      "total_analyses":  {
+                                                                                                             "type":  "integer",
+                                                                                                             "title":  "Total Analyses"
+                                                                                                         },
+                                                                                      "fake_count":  {
+                                                                                                         "type":  "integer",
+                                                                                                         "title":  "Fake Count"
+                                                                                                     },
+                                                                                      "real_count":  {
+                                                                                                         "type":  "integer",
+                                                                                                         "title":  "Real Count"
+                                                                                                     },
+                                                                                      "uncertain_count":  {
+                                                                                                              "type":  "integer",
+                                                                                                              "title":  "Uncertain Count"
+                                                                                                          },
+                                                                                      "avg_score":  {
+                                                                                                        "anyOf":  [
+                                                                                                                      {
+                                                                                                                          "type":  "number"
+                                                                                                                      },
+                                                                                                                      {
+                                                                                                                          "type":  "null"
+                                                                                                                      }
+                                                                                                                  ],
+                                                                                                        "title":  "Avg Score"
+                                                                                                    },
+                                                                                      "avg_confidence":  {
+                                                                                                             "anyOf":  [
+                                                                                                                           {
+                                                                                                                               "type":  "number"
+                                                                                                                           },
+                                                                                                                           {
+                                                                                                                               "type":  "null"
+                                                                                                                           }
+                                                                                                                       ],
+                                                                                                             "title":  "Avg Confidence"
+                                                                                                         }
+                                                                                  },
+                                                                   "type":  "object",
+                                                                   "required":  [
+                                                                                    "date",
+                                                                                    "total_analyses",
+                                                                                    "fake_count",
+                                                                                    "real_count",
+                                                                                    "uncertain_count",
+                                                                                    "avg_score",
+                                                                                    "avg_confidence"
+                                                                                ],
+                                                                   "title":  "TimeseriesDataPoint"
+                                                               },
+                                       "TimeseriesResponse":  {
+                                                                  "properties":  {
+                                                                                     "data":  {
+                                                                                                  "items":  {
+                                                                                                                "$ref":  "#/components/schemas/TimeseriesDataPoint"
+                                                                                                            },
+                                                                                                  "type":  "array",
+                                                                                                  "title":  "Data"
+                                                                                              },
+                                                                                     "period_days":  {
+                                                                                                         "type":  "integer",
+                                                                                                         "title":  "Period Days"
+                                                                                                     },
+                                                                                     "total_points":  {
+                                                                                                          "type":  "integer",
+                                                                                                          "title":  "Total Points"
+                                                                                                      }
+                                                                                 },
+                                                                  "type":  "object",
+                                                                  "required":  [
+                                                                                   "data",
+                                                                                   "period_days",
+                                                                                   "total_points"
+                                                                               ],
+                                                                  "title":  "TimeseriesResponse"
+                                                              },
+                                       "Token":  {
+                                                     "properties":  {
+                                                                        "access_token":  {
+                                                                                             "type":  "string",
+                                                                                             "title":  "Access Token"
+                                                                                         },
+                                                                        "token_type":  {
+                                                                                           "type":  "string",
+                                                                                           "title":  "Token Type"
+                                                                                       }
+                                                                    },
+                                                     "type":  "object",
+                                                     "required":  [
+                                                                      "access_token",
+                                                                      "token_type"
+                                                                  ],
+                                                     "title":  "Token"
+                                                 },
+                                       "UserCreate":  {
+                                                          "properties":  {
+                                                                             "email":  {
+                                                                                           "type":  "string",
+                                                                                           "format":  "email",
+                                                                                           "title":  "Email"
+                                                                                       },
+                                                                             "password":  {
+                                                                                              "type":  "string",
+                                                                                              "title":  "Password"
+                                                                                          }
+                                                                         },
+                                                          "type":  "object",
+                                                          "required":  [
+                                                                           "email",
+                                                                           "password"
+                                                                       ],
+                                                          "title":  "UserCreate"
+                                                      },
+                                       "UserPublic":  {
+                                                          "properties":  {
+                                                                             "id":  {
+                                                                                        "type":  "integer",
+                                                                                        "title":  "Id"
+                                                                                    },
+                                                                             "email":  {
+                                                                                           "type":  "string",
+                                                                                           "format":  "email",
+                                                                                           "title":  "Email"
+                                                                                       }
+                                                                         },
+                                                          "type":  "object",
+                                                          "required":  [
+                                                                           "id",
+                                                                           "email"
+                                                                       ],
+                                                          "title":  "UserPublic"
+                                                      },
+                                       "ValidationError":  {
+                                                               "properties":  {
+                                                                                  "loc":  {
+                                                                                              "items":  {
+                                                                                                            "anyOf":  [
+                                                                                                                          {
+                                                                                                                              "type":  "string"
+                                                                                                                          },
+                                                                                                                          {
+                                                                                                                              "type":  "integer"
+                                                                                                                          }
+                                                                                                                      ]
+                                                                                                        },
+                                                                                              "type":  "array",
+                                                                                              "title":  "Location"
+                                                                                          },
+                                                                                  "msg":  {
+                                                                                              "type":  "string",
+                                                                                              "title":  "Message"
+                                                                                          },
+                                                                                  "type":  {
+                                                                                               "type":  "string",
+                                                                                               "title":  "Error Type"
+                                                                                           }
+                                                                              },
+                                                               "type":  "object",
+                                                               "required":  [
+                                                                                "loc",
+                                                                                "msg",
+                                                                                "type"
+                                                                            ],
+                                                               "title":  "ValidationError"
+                                                           },
+                                       "WordLiftRequest":  {
+                                                               "properties":  {
+                                                                                  "text":  {
+                                                                                               "type":  "string",
+                                                                                               "title":  "Text",
+                                                                                               "description":  "Texto a verificar hechos"
+                                                                                           }
+                                                                              },
+                                                               "type":  "object",
+                                                               "required":  [
+                                                                                "text"
+                                                                            ],
+                                                               "title":  "WordLiftRequest",
+                                                               "description":  "Request para WordLift API"
+                                                           }
+                                   }
+                   }
+}

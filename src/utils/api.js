@@ -201,6 +201,24 @@ export async function getApiMetrics() {
 }
 
 /**
+ * Obtiene el estado de las APIs de fact-checking externas
+ * @returns {Promise<Object>} Estado de cada API (google_fact_check, claimbuster, etc.)
+ */
+export async function getFactCheckStatus() {
+  try {
+    const response = await fetch(`${API_BASE_URL}/fact-check/status`, {
+      method: 'GET',
+      ...defaultRequestConfig,
+    });
+    
+    return await handleResponse(response);
+  } catch (error) {
+    console.error('Error obteniendo estado de fact-check APIs:', error);
+    throw new Error(`No se pudo obtener el estado de las APIs: ${error.message}`);
+  }
+}
+
+/**
  * Analiza el contenido de un archivo para detectar noticias falsas
  * @param {File} file - Archivo a analizar
  * @param {Object} options - Opciones adicionales de análisis

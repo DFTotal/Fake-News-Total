@@ -71,7 +71,8 @@ async function handleResponse(response) {
  */
 export async function getApiHealth() {
   try {
-    const response = await fetch(`${API_BASE_URL}/health/`, {
+    // Usar /ping (sin dependencias de BD) para serverless
+    const response = await fetch(`${API_BASE_URL}/health/ping`, {
       method: 'GET',
       ...defaultRequestConfig,
     });
@@ -97,7 +98,8 @@ export async function getDatabaseHealth() {
     return await handleResponse(response);
   } catch (error) {
     console.error('Error verificando estado de la base de datos:', error);
-    throw new Error(`No se pudo verificar el estado de la base de datos: ${error.message}`);
+    // Devolver estado degradado en lugar de fallar
+    return { status: 'degraded', connection: false, error: error.message };
   }
 }
 
@@ -115,7 +117,8 @@ export async function getAIModelHealth() {
     return await handleResponse(response);
   } catch (error) {
     console.error('Error verificando estado del modelo de IA:', error);
-    throw new Error(`No se pudo verificar el estado del modelo de IA: ${error.message}`);
+    // Devolver estado degradado en lugar de fallar
+    return { status: 'degraded', model_loaded: false, error: error.message };
   }
 }
 
@@ -133,7 +136,8 @@ export async function getWebExtractorHealth() {
     return await handleResponse(response);
   } catch (error) {
     console.error('Error verificando estado del extractor web:', error);
-    throw new Error(`No se pudo verificar el estado del extractor web: ${error.message}`);
+    // Devolver estado degradado en lugar de fallar
+    return { status: 'degraded', extractor_available: false, error: error.message };
   }
 }
 

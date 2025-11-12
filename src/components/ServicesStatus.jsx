@@ -14,11 +14,32 @@ export default function ServicesStatus() {
 
   const checkServices = async () => {
     try {
-      const response = await fetch('/api/health/verification-layers');
+      const baseUrl = '/api'; // Usar proxy en producción
+      const response = await fetch(`${baseUrl}/health/verification-layers`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
       const data = await response.json();
       setServices(data);
     } catch (error) {
       console.error('Error checking services:', error);
+      // Si falla, mostrar estado degradado
+      setServices({
+        status: 'degraded',
+        active_components: 0,
+        total_components: 6,
+        availability_percentage: 0,
+        components: {
+          ner_service: false,
+          wikipedia_api: false,
+          news_api: false,
+          political_detector: false,
+          ai_analyzer: false,
+          web_extractor: false
+        }
+      });
     } finally {
       setLoading(false);
     }

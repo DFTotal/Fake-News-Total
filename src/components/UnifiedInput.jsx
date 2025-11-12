@@ -16,13 +16,31 @@ export default function UnifiedInput({ onSubmit, loading }) {
     }
   };
 
-  // Manejar envío
+  // Manejar envío con validación de longitud mínima
   const handleSubmit = () => {
     if (selectedFile) {
       onSubmit(selectedFile, 'file');
     } else if (value.trim()) {
-      const type = isUrl(value.trim()) ? 'url' : 'text';
-      onSubmit(value.trim(), type);
+      const trimmedValue = value.trim();
+      const type = isUrl(trimmedValue) ? 'url' : 'text';
+      
+      // ⚠️ VALIDACIÓN: Advertir si el texto es muy corto para análisis confiable
+      // Titulares típicos: 30-100 caracteres
+      // Para análisis de fake news necesitamos contexto suficiente
+      if (type === 'text' && trimmedValue.length < 20) {
+        alert(
+          '⚠️ TEXTO MUY CORTO\n\n' +
+          `El texto tiene solo ${trimmedValue.length} caracteres.\n\n` +
+          'Para un análisis confiable de noticias, se recomienda:\n' +
+          '• Mínimo: 20 caracteres (titular corto)\n' +
+          '• Ideal: 50+ caracteres (titular completo)\n' +
+          '• Mejor: 100+ caracteres (con contexto)\n\n' +
+          'Textos muy cortos pueden dar resultados poco precisos.'
+        );
+        return;
+      }
+      
+      onSubmit(trimmedValue, type);
     }
   };
 
@@ -167,8 +185,32 @@ export default function UnifiedInput({ onSubmit, loading }) {
         
         <div className="flex items-center justify-between px-3 py-2 border-t bg-gray-50 rounded-b-lg">
           <div className="flex items-center gap-2 text-[11px] text-soft">
-            <span className={`w-2 h-2 rounded-full ${hasContent ? 'bg-emerald-500' : 'bg-gray-400'}`}></span>
-            <span>{selectedFile ? 'Archivo listo' : 'Escribe, pega URL o selecciona archivo'}</span>
+            {selectedFile ? (
+              <>
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span>Archivo listo</span>
+              </>
+            ) : value.trim() ? (
+              <>
+                <span className={`w-2 h-2 rounded-full ${
+                  value.trim().length < 20 ? 'bg-rose-500' : 
+                  value.trim().length < 50 ? 'bg-amber-500' : 
+                  'bg-emerald-500'
+                }`}></span>
+                <span>
+                  {value.trim().length} caracteres
+                  {value.trim().length < 20 && ' (muy corto)'}
+                  {value.trim().length >= 20 && value.trim().length < 50 && ' (titular corto)'}
+                  {value.trim().length >= 50 && value.trim().length < 100 && ' (bien)'}
+                  {value.trim().length >= 100 && ' (ideal)'}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                <span>Escribe, pega URL o selecciona archivo</span>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-2">
             {hasContent && !loading && (

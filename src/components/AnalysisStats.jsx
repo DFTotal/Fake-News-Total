@@ -7,6 +7,11 @@ export default function AnalysisStats({ result }) {
 
   const rawConfidence = result?.confidence || 0;
   const prediction = (result?.prediction || '').toLowerCase();
+  const textLength = result?.text_length || result?.extracted_text_length || 0;
+  
+  // 🛡️ ADVERTENCIA: Texto muy corto
+  const isTooShort = textLength < 100;
+  const isCriticallyShort = textLength < 50;
   
   // Determinar si es real o falso basándose en la respuesta del backend
   // Aplicamos principio de precaución: si hay duda, tratarlo como falso
@@ -37,6 +42,36 @@ export default function AnalysisStats({ result }) {
 
   return (
     <>
+      {/* ⚠️ ADVERTENCIA DE TEXTO CORTO */}
+      {isTooShort && (
+        <div className={`mt-4 p-3 rounded-lg border-2 ${
+          isCriticallyShort 
+            ? 'bg-rose-50 border-rose-300' 
+            : 'bg-amber-50 border-amber-300'
+        }`}>
+          <div className="flex items-start gap-2">
+            <span className="text-xl">{isCriticallyShort ? '🚨' : '⚠️'}</span>
+            <div className="flex-1 text-sm">
+              <div className={`font-semibold mb-1 ${
+                isCriticallyShort ? 'text-rose-700' : 'text-amber-700'
+              }`}>
+                {isCriticallyShort ? 'Advertencia Crítica' : 'Advertencia'}
+              </div>
+              <div className={isCriticallyShort ? 'text-rose-600' : 'text-amber-700'}>
+                El texto analizado es muy corto ({textLength} caracteres). 
+                Los modelos de IA necesitan más contexto para un análisis confiable.
+                <strong className="block mt-1">
+                  {isCriticallyShort 
+                    ? '⚠️ Confiabilidad muy baja - Verifica manualmente antes de compartir'
+                    : '⚠️ Confiabilidad reducida - Se recomienda verificar con fuentes adicionales'
+                  }
+                </strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mt-6">
         <button
           type="button"
@@ -177,6 +212,95 @@ export default function AnalysisStats({ result }) {
                 </div>
               )}
               
+              {/* Nueva sección: Google Fact Check Integration */}
+              {result.fact_check && (result.fact_check.claims_found > 0 || result.fact_check.score_adjustment !== 0) && (
+                <div className="border border-blue-200 rounded-lg overflow-hidden bg-blue-50">
+                  <div className="px-4 py-3 bg-blue-100 border-b border-blue-200">
+                    <h4 className="font-semibold text-blue-900 flex items-center gap-2">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                      </svg>
+                      {result.fact_check.claims_found > 0 
+                        ? `Verificación Externa (${result.fact_check.claims_found} fuentes)`
+                        : 'Verificación Inteligente'}
+                    </h4>
+                  </div>
+                  <div className="p-4">
+                    {result.fact_check.score_adjustment !== 0 && (
+                      <div className={`mb-3 p-3 rounded border ${
+                        result.fact_check.score_adjustment < 0 
+                          ? 'bg-red-50 border-red-200 text-red-800' 
+                          : 'bg-green-50 border-green-200 text-green-800'
+                      }`}>
+                        <div className="font-medium text-sm mb-1 flex items-center gap-2">
+                          {result.fact_check.score_adjustment < 0 ? (
+                            <>
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                              </svg>
+                              Alerta: Contenido sospechoso
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              Verificación positiva
+                            </>
+                          )}
+                        </div>
+                        <div className="text-xs">
+                          {result.fact_check.score_adjustment < -0.3 
+                            ? '🚨 Detección de inconsistencia temporal o contenido verificado como falso'
+                            : result.fact_check.score_adjustment < 0
+                            ? `Ajuste aplicado: ${(result.fact_check.score_adjustment * 100).toFixed(0)}%`
+                            : `Contenido verificado positivamente (+${(result.fact_check.score_adjustment * 100).toFixed(0)}%)`
+                          }
+                        </div>
+                      </div>
+                    )}
+                    
+                    {result.fact_check.data?.claims && result.fact_check.data.claims.length > 0 && (
+                      <div className="space-y-2">
+                        <div className="text-xs font-medium text-blue-800 mb-2">
+                          Fuentes de verificación externa:
+                        </div>
+                        {result.fact_check.data.claims.slice(0, 3).map((claim, idx) => (
+                          <div key={idx} className="p-3 bg-white rounded border border-blue-200">
+                            <div className="font-medium text-blue-900 text-sm mb-1">
+                              {claim.text || claim.claim || 'Sin descripción'}
+                            </div>
+                            {claim.claimant && (
+                              <div className="text-xs text-blue-700 mb-1">
+                                Afirmado por: {claim.claimant}
+                              </div>
+                            )}
+                            {claim.claimReview && claim.claimReview[0] && (
+                              <div className="mt-2 pt-2 border-t border-blue-100">
+                                <div className="text-xs text-blue-700">
+                                  <strong>Rating:</strong> {claim.claimReview[0].textualRating || 'N/A'}
+                                </div>
+                                {claim.claimReview[0].publisher?.name && (
+                                  <div className="text-xs text-blue-600 mt-0.5">
+                                    Verificado por: {claim.claimReview[0].publisher.name}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {result.fact_check.claims_found === 0 && result.fact_check.score_adjustment < 0 && (
+                      <div className="text-xs text-red-700 bg-red-50 p-2 rounded border border-red-200">
+                        ⚠️ Detección automática de inconsistencias (verificación temporal, patrones sospechosos, etc.)
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
               {/* Resultados de Fact-Checking */}
               {result.fact_check_results && (
                 <div className="border border-slate-200 rounded-lg overflow-hidden">
@@ -282,10 +406,9 @@ export default function AnalysisStats({ result }) {
               )}
 
               <p className="text-[13px] text-slate-600 bg-slate-50 p-2 rounded border border-slate-200">
-                <strong>Cómo funciona:</strong> Primero analizamos con IA, luego verificamos con Google Fact Check y RapidAPI. 
-                Si los verificadores encuentran información confirmada sobre la noticia, priorizamos su resultado. 
-                Si no hay coincidencias, usamos la predicción de la IA. 
-                Por precaución, si hay incertidumbre sin verificaciones externas, lo clasificamos como potencialmente falso.
+                <strong>Cómo funciona:</strong> Analizamos con {result.multi_model_analysis?.total_models || 'múltiples'} modelos de IA especializados en detección de fake news. 
+                {result.fact_check?.claims_found > 0 && ' Además, verificamos con Google Fact Check para contrastar con verificaciones externas reales.'}
+                {' '}El veredicto final se basa en el consenso de los modelos{result.fact_check?.score_adjustment !== 0 ? ' ajustado por fact-checking' : ''}.
               </p>
             </div>
             <div className="mt-4 flex justify-end">

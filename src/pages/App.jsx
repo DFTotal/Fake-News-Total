@@ -127,7 +127,19 @@ export default function App() {
       let finalConfidence = aiConfidence;
       let verificationSource = `Consenso de ${multiModelVotes.total_models} modelos de IA`;
 
-      // PRIORIDAD 1: Si Google Fact Check tiene verificación
+      // 🛡️ PENALIZACIÓN POR TEXTO MUY CORTO (mejora contra falsos positivos)
+      const textLength = textContent?.length || 0;
+      if (type === 'text' && textLength < 100) {
+        // Textos muy cortos tienen baja confiabilidad inherente
+        if (textLength < 50) {
+          finalConfidence = Math.min(finalConfidence, 0.40); // Máximo 40% para <50 chars
+          verificationSource = `⚠️ Texto muy corto (${textLength} chars) - Baja confiabilidad`;
+        } else {
+          finalConfidence = Math.min(finalConfidence, 0.65); // Máximo 65% para <100 chars
+        }
+      }
+
+      // PRIORIDAD 1: Si Google Fact Check tiene verificación EXPLÍCITA
       if (factCheckResults?.results?.google?.success && factCheckResults.results.google.total_results > 0) {
         const googleClaims = factCheckResults.results.google.claims || [];
         
@@ -135,16 +147,30 @@ export default function App() {
           const firstClaim = googleClaims[0];
           const rating = (firstClaim.textualRating || '').toLowerCase();
           
-          // Interpretar rating de Google
-          if (rating.includes('false') || rating.includes('falso') || rating.includes('incorrect')) {
+          // Interpretar rating de Google (PRIORIDAD MÁXIMA)
+          if (rating.includes('false') || rating.includes('falso') || rating.includes('incorrect') || rating.includes('lie')) {
             finalPrediction = 'fake';
             finalConfidence = 0.95; // Muy alta confianza con Google + IA
-            verificationSource = 'Google Fact Check + IA';
-          } else if (rating.includes('true') || rating.includes('correct') || rating.includes('verdadero')) {
+            verificationSource = '✅ Google Fact Check (Falso verificado)';
+          } else if (rating.includes('true') || rating.includes('correct') || rating.includes('verdadero') || rating.includes('accurate')) {
             finalPrediction = 'real';
             finalConfidence = 0.95;
-            verificationSource = 'Google Fact Check + IA';
+            verificationSource = '✅ Google Fact Check (Verdadero verificado)';
+          } else if (rating.includes('misleading') || rating.includes('engañoso') || rating.includes('manipulated')) {
+            finalPrediction = 'fake';
+            finalConfidence = 0.85;
+            verificationSource = '⚠️ Google Fact Check (Engañoso)';
           }
+        }
+      }
+      // PRIORIDAD 1.5: Si NO hay verificación de fact-checkers para texto corto → SOSPECHA
+      else if (type === 'text' && textLength < 150 && textLength > 0) {
+        // Si es una afirmación corta y no hay verificación, principio de precaución
+        if (multiModelVotes.fake_votes >= multiModelVotes.real_votes) {
+          // Si los modelos ya sospechan, mantener o aumentar sospecha
+          finalPrediction = 'fake';
+          finalConfidence = Math.max(0.35, Math.min(finalConfidence, 0.65));
+          verificationSource = `⚠️ Sin verificación externa - Principio de precaución aplicado`;
         }
       }
       

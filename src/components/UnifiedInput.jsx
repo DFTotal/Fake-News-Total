@@ -16,13 +16,26 @@ export default function UnifiedInput({ onSubmit, loading }) {
     }
   };
 
-  // Manejar envío
+  // Manejar envío con validación mejorada
   const handleSubmit = () => {
     if (selectedFile) {
       onSubmit(selectedFile, 'file');
     } else if (value.trim()) {
-      const type = isUrl(value.trim()) ? 'url' : 'text';
-      onSubmit(value.trim(), type);
+      const trimmedValue = value.trim();
+      const type = isUrl(trimmedValue) ? 'url' : 'text';
+      
+      // ⚠️ VALIDACIÓN: Advertir si el texto es muy corto
+      if (type === 'text' && trimmedValue.length < 50) {
+        const confirmShort = confirm(
+          '⚠️ ADVERTENCIA: El texto es muy corto (menos de 50 caracteres).\n\n' +
+          'Los modelos de IA necesitan más contexto para un análisis confiable.\n' +
+          'Los resultados pueden ser poco precisos.\n\n' +
+          '¿Deseas continuar de todos modos?'
+        );
+        if (!confirmShort) return;
+      }
+      
+      onSubmit(trimmedValue, type);
     }
   };
 

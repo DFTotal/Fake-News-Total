@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar';
 import UnifiedInput from '../components/UnifiedInput';
 import AnalysisStats from '../components/AnalysisStats';
 import MetricsSidebar from '../components/MetricsSidebar';
+import ServicesStatus from '../components/ServicesStatus';
 import { useMetrics } from '../utils/useMetricsStore.jsx';
 import { 
   getApiHealth,
@@ -215,9 +216,22 @@ export default function App() {
               <div className="flex items-center justify-center gap-2 flex-wrap">
                 <span className={`w-2 h-2 rounded-full ${apiStatus==='online'?'bg-green-500':apiStatus==='offline'?'bg-rose-500':'bg-amber-500'}`}></span>
                 <span className="font-medium text-slate-700">
-                  {apiStatus === 'online' ? 'Sistema listo para análisis' : apiStatus === 'offline' ? 'Servicio temporalmente no disponible' : 'Conectando con el servicio...'}
+                  {apiStatus === 'online' 
+                    ? 'Sistema listo - 8 capas de verificación activas' 
+                    : apiStatus === 'offline' 
+                    ? 'Servicio temporalmente no disponible - Intenta más tarde' 
+                    : 'Conectando con el servicio de verificación...'}
                 </span>
               </div>
+              {apiStatus === 'online' && systemHealth && (
+                <div className="mt-2 text-xs text-slate-600">
+                  {!systemHealth.database && ' • Base de datos en modo degradado'}
+                  {!systemHealth.ai_model && ' • Algunos modelos de IA no disponibles'}
+                  {!systemHealth.web_extractor && ' • Extractor web limitado'}
+                  {systemHealth.database && systemHealth.ai_model && systemHealth.web_extractor && 
+                    ' Todos los servicios operativos ✓'}
+                </div>
+              )}
             </div>
             <p className="text-center text-[13px] md:text-sm text-soft max-w-3xl mx-auto mt-5 leading-relaxed">
               Analiza URLs, texto o archivos con 6 modelos de IA simultáneamente para obtener un veredicto más preciso. Compartimos señales agregadas para fortalecer la comunidad.
@@ -226,6 +240,7 @@ export default function App() {
               <div className="flex-1 min-w-0">
                 <UnifiedInput onSubmit={handleSubmit} loading={loading} />
                 {error && <div className="mt-4 text-xs text-rose-600 bg-rose-50 border border-rose-200 px-3 py-2 rounded">{error}</div>}
+                <ServicesStatus />
                 <AnalysisStats result={result} />
               </div>
               <MetricsSidebar />

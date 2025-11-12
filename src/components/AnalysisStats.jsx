@@ -96,9 +96,21 @@ export default function AnalysisStats({ result }) {
               </div>
 
               {result.verification_source && (
-                <div className="p-3 bg-slate-50 rounded border border-slate-200">
-                  <span className="font-medium text-slate-700">Fuente de verificación:</span>
-                  <span className="ml-2 text-slate-600">{result.verification_source}</span>
+                <div className="p-3 bg-blue-50 rounded border border-blue-200">
+                  <div className="flex items-start gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1">
+                      <div className="font-medium text-blue-900 text-sm">Método de verificación</div>
+                      <div className="text-blue-700 text-xs mt-1">{result.verification_source}</div>
+                      {result.verification_method && (
+                        <div className="text-blue-600 text-xs mt-1 italic">
+                          Capa utilizada: {result.verification_method}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
               
@@ -181,53 +193,116 @@ export default function AnalysisStats({ result }) {
               {result.fact_check_results && (
                 <div className="border border-slate-200 rounded-lg overflow-hidden">
                   <div className="px-4 py-3 bg-slate-50 border-b border-slate-200">
-                    <h4 className="font-semibold text-slate-800">Verificación de hechos</h4>
+                    <h4 className="font-semibold text-slate-800">Verificación de hechos externa</h4>
                   </div>
                   
                   {/* Google Fact Check */}
-                  {result.fact_check_results.results?.google?.success && (
-                    <div className="p-4 border-b border-slate-200">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-sm font-medium text-slate-700">Google Fact Check</span>
-                        <span className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded">
-                          {result.fact_check_results.results.google.total_results} resultado(s)
-                        </span>
-                      </div>
-                      {result.fact_check_results.results.google.claims && result.fact_check_results.results.google.claims.length > 0 ? (
-                        <div className="space-y-2">
-                          {result.fact_check_results.results.google.claims.slice(0, 2).map((claim, idx) => (
-                            <div key={idx} className="p-3 bg-slate-50 rounded border border-slate-200">
-                              <div className="font-medium text-slate-800 text-sm mb-1">{claim.text || 'Sin descripción'}</div>
-                              {claim.claimant && (
-                                <div className="text-xs text-slate-600">Por: {claim.claimant}</div>
-                              )}
-                              {claim.textualRating && (
-                                <div className="font-medium text-slate-700 mt-1 text-xs">
-                                  Rating: {claim.textualRating}
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                  {result.fact_check_results.results?.google ? (
+                    result.fact_check_results.results.google.success ? (
+                      <div className="p-4 border-b border-slate-200">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="text-sm font-medium text-slate-700">Google Fact Check</span>
+                          <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">
+                            ✓ Activo
+                          </span>
+                          <span className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded">
+                            {result.fact_check_results.results.google.total_results || 0} resultado(s)
+                          </span>
                         </div>
-                      ) : (
-                        <div className="text-sm text-slate-500">No se encontraron verificaciones</div>
+                        {result.fact_check_results.results.google.claims && result.fact_check_results.results.google.claims.length > 0 ? (
+                          <div className="space-y-2">
+                            {result.fact_check_results.results.google.claims.slice(0, 2).map((claim, idx) => (
+                              <div key={idx} className="p-3 bg-slate-50 rounded border border-slate-200">
+                                <div className="font-medium text-slate-800 text-sm mb-1">{claim.text || 'Sin descripción'}</div>
+                                {claim.claimant && (
+                                  <div className="text-xs text-slate-600">Por: {claim.claimant}</div>
+                                )}
+                                {claim.textualRating && (
+                                  <div className="font-medium text-slate-700 mt-1 text-xs">
+                                    Rating: {claim.textualRating}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-slate-500">No se encontraron verificaciones para este contenido</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="p-4 border-b border-slate-200">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-slate-700">Google Fact Check</span>
+                          <span className="px-2 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
+                            ⚠ No disponible
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500 mt-2">
+                          {result.fact_check_results.results.google.error || 'API key no configurada o servicio temporalmente no disponible'}
+                        </div>
+                      </div>
+                    )
+                  ) : null}
+
+                  {/* NewsAPI */}
+                  {result.fact_check_results.results?.news_api && (
+                    <div className="p-4 border-b border-slate-200">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-slate-700">NewsAPI</span>
+                        {result.fact_check_results.results.news_api.success ? (
+                          <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">
+                            ✓ Activo
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
+                            ⚠ No disponible
+                          </span>
+                        )}
+                      </div>
+                      {result.fact_check_results.results.news_api.success && result.fact_check_results.results.news_api.articles_found > 0 && (
+                        <div className="text-xs text-slate-600 mt-2">
+                          {result.fact_check_results.results.news_api.articles_found} artículo(s) relacionado(s) encontrado(s)
+                        </div>
                       )}
                     </div>
                   )}
 
                   {/* RapidAPI */}
-                  {result.fact_check_results.results?.rapidapi?.success && (
+                  {result.fact_check_results.results?.rapidapi && (
                     <div className="p-4 border-b border-slate-200">
-                      <span className="text-sm font-medium text-slate-700">RapidAPI Fact Check</span>
-                      <div className="text-sm text-slate-600 mt-1">Verificación exitosa</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-slate-700">RapidAPI Fact Check</span>
+                        {result.fact_check_results.results.rapidapi.success ? (
+                          <span className="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">
+                            ✓ Activo
+                          </span>
+                        ) : (
+                          <span className="px-2 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">
+                            ⚠ No disponible
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
 
                   {/* Resumen */}
                   {result.fact_check_results.summary && (
                     <div className="px-4 py-3 bg-slate-50 text-xs text-slate-600">
-                      <div>APIs: {result.fact_check_results.summary.apis_called?.join(', ') || 'N/A'}</div>
-                      <div>Exitosas: {result.fact_check_results.summary.successful_calls || 0} / {result.fact_check_results.summary.total_apis_used || 0}</div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-medium">APIs consultadas:</span>{' '}
+                          {result.fact_check_results.summary.apis_called?.join(', ') || 'N/A'}
+                        </div>
+                        <div>
+                          <span className="font-medium">Exitosas:</span>{' '}
+                          {result.fact_check_results.summary.successful_calls || 0} / {result.fact_check_results.summary.total_apis_used || 0}
+                        </div>
+                      </div>
+                      {result.fact_check_results.summary.successful_calls === 0 && (
+                        <div className="mt-2 text-amber-600">
+                          ℹ️ Ninguna API de fact-checking disponible. El análisis se basa únicamente en los modelos de IA.
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
